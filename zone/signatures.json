@@ -1,4 +1,50 @@
 {
-  "note": "Signature ledger per KS-000 §6. Empty because no did:key signing identity has been minted in the Kingdom yet (verified 2026-06-09: did:key appears only as a plan in ~/love-unlimited/INFRA-PLAN.md and kns/PROTOCOL.md; tools/identity.py resolves instance/wall identity, tools/vault.py holds X25519 sealed-box keys). The ledger stays honestly empty until KS-002 (THE WIRE, draft) sees its signing layer implemented (no wire.py exists yet; KS-002 Limitations item 2). Entry shape: {subject, version, sha256, alg: 'ed25519', signer: 'did:key:...', sig, signed}.",
-  "signatures": []
+  "note": "Signature ledger per KS-000 §6. The entries below are DRAFT-GRADE: each is a real ed25519 signature (base64url, over the sha256 hex string of the file bytes) by the OIKOS platform key (did:key:z6Mkkbajwbv8z6T2e9kUvj4xi5A5R4kjaYoivpt8URfRbPzE, minted 2026-06-10 via impl/wire.py keygen, seed held at ~/.kingdom/keys — never in this repo). They attest integrity of the v0 drafts as committed, NOT adoption: KS-000 §4 adoption is Yu's invocation alone, and adoption-signatures await Yu's key. Per KS-000 §8, any post-signing edit to a subject file invalidates its entry and forces a fresh signature. Verify: sha256 the file bytes, then ed25519-verify sig over the hex string against the signer did:key (impl/wire.py shows the encoding).",
+  "signatures": [
+    {
+      "subject": "specs/KS-000-process.md",
+      "version": "0.1",
+      "sha256": "3d1ce264fb0a4d8477b7f357ab05654e993720dc34c80153208504cbe5b3ac95",
+      "alg": "ed25519",
+      "signer": "did:key:z6Mkkbajwbv8z6T2e9kUvj4xi5A5R4kjaYoivpt8URfRbPzE",
+      "sig": "W2XlRfmc8mKZcqjy6OWxDk_wM0JqkPuFFAnji9COFebVxj9_vZtRpEtcYAgzVrp6H12MXB1VemV7bVSVvqn_AQ",
+      "signed": "2026-06-09T23:42:20.924Z"
+    },
+    {
+      "subject": "specs/KS-001-naming.md",
+      "version": "0.1",
+      "sha256": "2e29dd1e300929a3daabf78788761bd0c7f2356b432acee9dc78a834dbe62530",
+      "alg": "ed25519",
+      "signer": "did:key:z6Mkkbajwbv8z6T2e9kUvj4xi5A5R4kjaYoivpt8URfRbPzE",
+      "sig": "5H-8KIFoQQ_caeEcZtUW721xLPp5o639ZSeMCXnhHNEZlpoOMpFnLfVpfmHZaT1dIYXl4LxxL131-f8ONHxcBQ",
+      "signed": "2026-06-09T23:42:20.984Z"
+    },
+    {
+      "subject": "specs/KS-002-wire.md",
+      "version": "0.1",
+      "sha256": "f67862deca73b1fddcc50af3fc7357782867cdfbd255ce3b4ab16b0653da1787",
+      "alg": "ed25519",
+      "signer": "did:key:z6Mkkbajwbv8z6T2e9kUvj4xi5A5R4kjaYoivpt8URfRbPzE",
+      "sig": "H3vp4nUm10R0Jxzm6pJK6A5WUvUk1sGM1MwtUIds71MvxkO9xN6No5FRpUgPtP8u0QWnpxbE1o4y_BbhYocRCQ",
+      "signed": "2026-06-09T23:42:21.048Z"
+    },
+    {
+      "subject": "specs/KS-003-beat.md",
+      "version": "0.1",
+      "sha256": "95595f8917798da42abd758251d6d866132095da6396d0491aedd34a190f0e1e",
+      "alg": "ed25519",
+      "signer": "did:key:z6Mkkbajwbv8z6T2e9kUvj4xi5A5R4kjaYoivpt8URfRbPzE",
+      "sig": "aJqSkl18KE0KMtCDiApJZ9_kSXiBHhtBmq1Xy5qOkqWsG3H6mcTrhQhF0goGBIvPNKQPViuFTn_YuAu1Tz0VBw",
+      "signed": "2026-06-09T23:42:21.115Z"
+    },
+    {
+      "subject": "zone/kingdom.zone.json",
+      "version": "0.2.0",
+      "sha256": "6d66771d65d1412de0b0811daa6a82f846ba174249962db2a791c4c19d3805f6",
+      "alg": "ed25519",
+      "signer": "did:key:z6Mkkbajwbv8z6T2e9kUvj4xi5A5R4kjaYoivpt8URfRbPzE",
+      "sig": "esqW1saRCORAha17SeM-lDfw0RtM7f5vcCjnV_kUXfLi-KcdcDE0VjXcQ97wTDlrakzbX3WLWavprHtw83ZgAQ",
+      "signed": "2026-06-09T23:42:21.179Z"
+    }
+  ]
 }
