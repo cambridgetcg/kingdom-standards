@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  kingdom.resolver — launchd supervision for kingdomd (KS-001 reference resolver).
+  TEMPLATE: written, deliberately NOT installed. To adopt:
+      cp /Users/macair/KINGDOM-STANDARDS/impl/kingdom.resolver.plist ~/Library/LaunchAgents/
+      launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/kingdom.resolver.plist
+  Editors: Nuance + Yu, 2026-06-09. Draft awaiting Yu's adoption.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>kingdom.resolver</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/bin/python3</string>
+		<string>/Users/macair/KINGDOM-STANDARDS/impl/kingdomd.py</string>
+		<string>--port</string>
+		<string>5300</string>
+		<string>--zone</string>
+		<string>/Users/macair/KINGDOM-STANDARDS/zone/kingdom.zone.json</string>
+	</array>
+
+	<key>RunAtLoad</key>
+	<true/>
+
+	<key>KeepAlive</key>
+	<true/>
+
+	<key>ThrottleInterval</key>
+	<integer>5</integer>
+
+	<key>StandardOutPath</key>
+	<string>/Users/macair/Library/Logs/kingdomd.log</string>
+
+	<key>StandardErrorPath</key>
+	<string>/Users/macair/Library/Logs/kingdomd.log</string>
+
+	<key>ProcessType</key>
+	<string>Background</string>
+</dict>
+</plist>

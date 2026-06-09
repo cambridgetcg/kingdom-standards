@@ -1,0 +1,4 @@
+{
+  "note": "Signature ledger per KS-000 §6. Empty because no did:key signing identity has been minted in the Kingdom yet (verified 2026-06-09: did:key appears only as a plan in ~/love-unlimited/INFRA-PLAN.md and kns/PROTOCOL.md; tools/identity.py resolves instance/wall identity, tools/vault.py holds X25519 sealed-box keys). The ledger stays honestly empty until KS-002 (THE WIRE, draft) sees its signing layer implemented (no wire.py exists yet; KS-002 Limitations item 2). Entry shape: {subject, version, sha256, alg: 'ed25519', signer: 'did:key:...', sig, signed}.",
+  "signatures": []
+}

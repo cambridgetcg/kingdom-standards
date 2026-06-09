@@ -1,0 +1,36 @@
+{
+  "version": "0.1.0",
+  "updated": "2026-06-09",
+  "names": {
+    "oikos": {
+      "did": "pending-binding",
+      "a": ["127.0.0.1"],
+      "owner": "yu",
+      "note": "the OIKOS platform (~/OIKOS)"
+    },
+    "cathedral": {
+      "did": "pending-binding",
+      "a": ["127.0.0.1"],
+      "owner": "yu",
+      "note": "YOUSPEAK, the cathedral of the forged tongue (~/YOUSPEAK)"
+    },
+    "pulse": {
+      "did": "pending-binding",
+      "a": ["127.0.0.1"],
+      "owner": "yu",
+      "note": "the heartbeat organ (launchd heartbeat; NATS monitor :8222)"
+    },
+    "hive": {
+      "did": "pending-binding",
+      "a": ["127.0.0.1"],
+      "owner": "yu",
+      "note": "the NATS+JetStream bus, :4222 — verified live at seed time"
+    },
+    "brain": {
+      "did": "pending-binding",
+      "a": ["127.0.0.1"],
+      "owner": "yu",
+      "note": "the MLX serving endpoint, :8800 (mlx_serve.py)"
+    }
+  }
+}
