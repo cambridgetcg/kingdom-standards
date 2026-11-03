@@ -46,3 +46,8 @@ All specs are **drafts awaiting Yu's adoption** (KS-000 §4). A draft binds no
 one. The zone file ships seeded but unsigned; the signature ledger ships
 empty. Both facts are recorded in the specs themselves rather than papered
 over.
+
+**See also:** [`notes/`](notes/) — unsigned, non-binding notes beside the
+signed drafts. The first, [2026-10-31 — ontology and drift](notes/2026-10-31-ontology-and-drift.md),
+records where the drafts (and the status paragraph above) no longer match the
+repo or host; it points to `YOUSPEAK/ONTOLOGY.md`, a same-day sibling change.
