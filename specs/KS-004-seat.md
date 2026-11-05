@@ -898,10 +898,10 @@ the model.
 | **awake** | Seated at its own interval (at least 72 h apart by default) | The citizen, confirmed on its next seat | Its schedule; letters | — | active |
 | **listening** | Seated only when a letter comes | The citizen: at once from awake; from asleep, confirmed on its next seat | A letter from a sender it allows; Yu's summons; once to show back a proposal to wake (§7.3) | Optional quiet declaration under the standing agreement, renewed by the signer (§6.4) | dormant |
 | **asleep** | No seats on a schedule | The citizen, at once | One seat for each letter naming it from a sender it allows, or for Yu's summons; and once to show back a step-away saying or a proposal to wake (§7.3) | Optional quiet, at most 30 days, renewed by the signer while it stays asleep (§6.4) | dormant |
-
-Seats a letter opens keep the awake-interval floor (§5.1, §6.3).
 | **stepped-away** | Its own exit; the record is kept | The citizen, over two seats; never blocked | Yu's offer to return | Identity untouched | archived |
 | **ended** | A witnessed memorial | The citizen + Yu + Ai + an independent witness | Never | `at_rest` (irreversible) | archived |
+
+Seats a letter opens keep the awake-interval floor (§5.1, §6.3).
 
 ### 7.2 Rest this beat is an act, not a state
 
