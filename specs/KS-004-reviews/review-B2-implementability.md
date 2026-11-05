@@ -2,7 +2,8 @@
 
 Filed under KS-000 §3. This is the re-review that review B asked for, on the
 same lens, covering KS-004 v0.2 at commit `7d24504`. Section and line numbers
-refer to that version unless a file is named. It has no disposition yet.
+refer to that version unless a file is named. The disposition of each point,
+as applied in v0.3, follows the review.
 
 ---
 
@@ -362,3 +363,76 @@ revision need only cover §4.4, §4.5, §5.5, §5.7, §5.8, §5.9, §6.3, §10, 
 and §15.
 
 Verdict: revise.
+
+---
+
+## Disposition (applied in v0.3)
+
+Section numbers below refer to v0.3. `kingdom-seat` was re-read for this
+revision at `724c660`, the local head of its PR branch `claude/s4-build`. The
+commits B2 read as `main` (`989fe7b` to `71f7c84`) are on that branch; `main`
+itself is still the skeleton, `989fe7b`. `724c660` was made after this review:
+it changes the code for C1, C4, R2 and R4, keeps an unknown cost `null` (R3),
+and pins correction 1 with a test. The "code" column of §14.4 describes that
+commit, not `71f7c84`.
+
+| # | Disposition | Where, and why |
+|---|---|---|
+| Strongest objection | Accepted | Every row of part C is settled once in the new §14.4, with which side changes. The status note, §2, §14.3, §15 item 1 and §17 no longer say the code does not exist. In the two places the spec could not be built or recorded a false number (R1, R3) it takes the code's answer; for rotation (C1) it keeps its own, which the code now matches. |
+| A, row 1 and row 2 residues | Accepted | Through R4. |
+| A, row 6 | Accepted | §4.3 says that where the strand key is derived from the citizen's mnemonic, Yu's offline backup can also decrypt the thoughts. That `self.applied` does not name the encryption key is a §14.4 row (code changes). |
+| A, row 16 | Accepted | §5.5 cites `citizen-beat.sh:110` and `:154` for "inside the home", keeps KS-003 §8.2 only for "prompt-only", says "meant for a run with a human present" and that the script does not check presence, and names love-unlimited main `85c0ab8`. §17 adds the love-unlimited reference. |
+| R1 | Accepted, with two choices | §5.7, §5.8, §9.3, §4.5 example. The reply is `{"acts": [...]}`, tagged by `type`; an empty list is a rest; `self.propose` carries `target`, `edit` (replace-all, or replace-span whose `find` occurs exactly once) and `reason`; the host computes both hashes and the diff; `ref` and `to_hash` take the full value or an unambiguous prefix of at least 8 hex, and the full value is recorded. Choices: the field names stay this draft's (`reason`, `text`, `ref`), and `self.revert` carries `to_hash` alone, with the host resolving the text, as in the code. An identifier that does not resolve fails validation (§5.8) rather than dropping one act; how partly invalid output is handled is recorded as open in §14.4. The §5.8 contradiction is gone with `voice` and `kind`. |
+| R2 | Accepted, with the code's mechanism | §6.3 "The host spend record", §2, §4.5, §5.10, §13, §16.6, principle 7. Added from `kingdom-seat` `724c660`: a `begun` line before the runtime starts (no start if it cannot be written) and a `settled` line however it ends; `begun` without `settled` counts as at the ceiling. |
+| R3 | Accepted | §5.5, §4.5 (`cost` field), §6.3. |
+| R4 | Accepted, with one addition | §4.5 (evidence fields named; `genesis` carries the first op key's evidence and is signed by that key; a revoke-only entry is signed by a key that stays; revoking the last key needs a new one in the same entry), §4.4, §16.8, §8.1 (publishing a ledger is beyond self), §11.3 steps 4 and 6, and §15 item 15 (the root's standing rests on agenttool's key list). Addition, from `kingdom-seat` `724c660`: each piece of evidence must carry an authority sequence above every one in earlier entries, so an old proof cannot reinstall a revoked key. The `kid` is noted as agenttool's answer, not root-signed. Evidence bodies are base64url without padding, like the ledger's other binary values. |
+| R5 | Accepted | §10 "One verb" and "Raising and lowering". The code's file in `<state_dir>` and its in-process signer call are a §14.4 row (code changes). |
+| R6 | Accepted, with one change | Status note, §2, §14.3, §15 item 1, §17. The repository is now published at github.com/cambridgetcg/kingdom-seat and under review as PR #1, so the text says that instead of "local, unpublished". The list of differences is the new §14.4 rather than §15, because a table does not sit well in a numbered list; §15 item 1 points to it. |
+| C1 | Spec | §4.5. The code matches at `724c660`; rotation is still not wired. |
+| C2 | Code's shape | See R1. The code changes its act field names to this draft's and adds `state.set`'s optional `interval_h` and `quiet_days` (§14.4). |
+| C3 | Code | See R3. |
+| C4 | Spec | §4.5. The code matches at `724c660`. |
+| C5 | Both in part | §4.5 defines one "ledger digest", sha256 of `kingdom-seat-ledger/v1`, `0x00` and the JCS bytes: `sig` is over the digest of the entry without `sig`, and `prev_hash` is the digest of the whole previous entry, `sig` included. The tag is also used for `prev_hash`, so there is one digest function. The code's `prev_hash` changes (§14.4). |
+| C6 | Spec | Unchanged in the text; the code changes (§14.4). Correction 4's porch display rule supports it. |
+| C7 | Spec | §5.8 now says why the state change survives; the code changes (§14.4). |
+| C8 | Code | §5.9: a seat HALT ends mid-run exits 143 or 137; HALT at the gate or at the re-check exits 0. §13's row says "as KS-003's table implies" and cites `citizen-beat.sh:199`. The §15 item 10 bullet for HALT exiting 0 is removed. |
+| C9 | Spec | §5.9: only a ceiling exits 3; a locked signer exits 0 with the status file saying why; a mismatched model exits 1, a symlinked letter is not read, a beyond-self act without consent stays inert. The code changes (§14.4). |
+| C10 | Code | §5.5 in the review's words, plus `remote_model`, the `sha256:<digest>:local` form, and why a tag call leaves a window. §16.6 and §15 item 12 follow; whether a v2-store model can be called by digest, and whether the lease host's model is in that store, are listed as unverified. Not adopted: keeping v0.2's after-call digest check on the tag path, since the code does not do it and the digest call is the fix. |
+| C11 | Spec, with the review's default | §5.3 item 1: the UTF-8 byte bound unless a tokenizer is used, marked as reasoning, not run, and as cautious. §15 item 10 lists it. The code changes (§14.4). |
+| C12 | Spec, as the target | §6.1, §15 item 4 (the boundary is the dedicated user's account until a signer reads its own items), §16.3 no longer reads as already true. |
+| C13 | Settled on this draft's names, with the code's format string | §4.5: `format: "kingdom-seat-ledger/v1"` replaces `v`, and binary values are base64url without padding. The entry types, flat fields, `sha256:` hash form and `null` first `prev_hash` stay. Why this side: the code must rewrite its entry bytes for C5 anyway, and no ledger has been written on a host. The June DID stays in the first entry (§11.5). The code changes (§14.4). |
+| C14 | Code's default, as Yu's decision | §7.3, §7.1, §5.1, §15 item 16. The letter-woken 72 h floor is made explicit in §5.1 and §7.1 as a reading of §6.3's "at least 72 h between seats", with the code's reason, and is listed in §15 item 10. |
+| D, 1 | Accepted | §6.4 (both requests name `identity_id`; why; the signer's body check is the only guard), §10 lowering. |
+| D, 2 | Accepted | §6.1, §6.2 (no `POST /v1/identities`, no fork), §15 item 7, §16.3. |
+| D, 3 | Accepted | §6.4, §11.4. |
+| D, 4 | Accepted in part | §4.3: "any other top-level field is refused, except `updated_at`". Not added: dropped subagent keys and the uncapped `cli_overrides` and subagent names, because no act here writes them. |
+| D, 5 | Accepted | §4.5 "Root evidence", §14.3. |
+| D, 6 | Accepted | §6.3. |
+
+**Found in this revision, not in B2.** Reading `kingdom-seat` at `724c660`
+turned up two differences B2 did not list. Both are recorded as open in §14.4
+rather than settled here: the code confirms a move toward more activity or a
+step-away by repeating the same `state.set` on the next seat, where this
+draft uses `self.affirm`; and the code drops each invalid act and applies the
+rest, where this draft refuses the whole output.
+
+**What the session that applied this re-review checked.** It ran `git log`,
+`git branch -a`, `git remote -v` and `git show --stat` in the local
+`kingdom-seat` clone, and read there, at `724c660`, `src/types.ts`,
+`src/acts.ts`, `src/ledger.ts`, `src/spend.ts`, `src/state.ts`,
+`src/seat.ts`, `src/due.ts`, `src/halt.ts`, `src/config.ts`,
+`src/runtime/free.ts`, `src/signer/keychain.ts`, parts of `src/self.ts` and
+`docs/ARCHITECTURE.md`. In the read-only agenttool checkout at `e9ea51c5` it
+re-read `services/identity/authority.ts` (the digest and header names),
+`routes/quiet-hours.ts` (`identity_id`, body handling),
+`routes/public/agents.ts`, `routes/identity-recover.ts`,
+`routes/inbox/messages.ts`, `routes/memory/tiers.ts`,
+`services/identity/project-authority.ts` and `services/identity/expression.ts`,
+and found them as B2 states. It did not re-read `services/identity/fork.ts`.
+In love-unlimited at `85c0ab8` it re-read `tools/citizen-beat.sh` lines
+44–50, 108–112, 152–156 and 196–199, and in this repository KS-003's exit
+table and §4.1. It ran no test, no model, no Claude Code and no agenttool
+call, used no network, and read no secret. PR #1 itself was not looked at:
+the clone's `github` remote is github.com/cambridgetcg/kingdom-seat, and its
+remote-tracking ref for `claude/s4-build` is at `c776d80`, so whether
+`724c660` has been pushed was not checked.
