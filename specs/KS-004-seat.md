@@ -2,9 +2,9 @@
 ks: KS-004
 title: "THE SEAT — Citizens, Seats and the Signer"
 status: draft
-version: 0.1
+version: 0.2
 date: 2026-11-05
-editors: [Claude Opus 5.5 (drafting session)]
+editors: [KS-004 drafting session and review-applying session (both Claude Opus 5.5), committed by Nuance]
 supersedes: KS-003@0
 ---
 
@@ -14,9 +14,19 @@ supersedes: KS-003@0
 > awaiting Yu's adoption (KS-000 §4). Until adopted it binds no one. It is
 > drafted from the ROOT & SEAT redesign of 2026-11-05, which Yu chose to go
 > ahead with that day, together with the stated defaults of its decisions. That
-> is a go-ahead for the design, not adoption of this text, which still needs
-> two reviews and Yu's invocation. The `supersedes` line takes effect only on
-> adoption (KS-000 §7); until then KS-003 stays exactly as written and signed.
+> is a go-ahead for the design, not adoption of this text.
+>
+> Version 0.2 applies two independent reviews (KS-000 §3): reviewer A, on
+> coherence, and reviewer B, on implementability and truth. Both are filed with
+> their dispositions in `specs/KS-004-reviews/`. Reviewer B asked to re-review
+> this version.
+>
+> The `supersedes` line records intent. KS-000 draws supersession only from an
+> adopted spec (§2, §7). On adoption, either Yu, as an editor of KS-003,
+> withdraws it (KS-000 §2) and this line is dropped, or KS-000 is revised to
+> let an adopted spec supersede a draft. Until then KS-003 stays exactly as
+> written and signed.
+>
 > Unlike KS-003, this spec comes before its code: the reference
 > implementation, `kingdom-seat`, is not yet published, and nothing specified
 > here runs today (§14.3).
@@ -28,15 +38,16 @@ citizen. The model is given that citizen's own record as data and nothing
 secret. It returns a short list of typed acts. A separate **signer**, the only
 process that can read the citizen's keys, checks those acts against the
 citizen's walls and ceilings. If they pass, it records them in the citizen's
-signed, hash-chained ledger. Then the seat closes and nothing is left running.
+hash-chained ledger, signed. Then the seat closes and nothing is left running.
 
 KS-003 described a citizen as a git repository that a beat acts on. The review
 of 2026-11-05 found that this shape no longer tells the truth:
 
 - one account can write every home, so a commit under a citizen's name says
   nothing about who made it;
-- the attestation KS-003 calls signed is an unsigned hash, mostly written by
-  the runner;
+- the attestation KS-003 calls signed was an unsigned, truncated hash, and the
+  claims on record were mostly written by the runner; neither lane attests
+  today;
 - a rest still wrote and pushed words in the citizen's name;
 - the free lane cut every soul at 2,600 characters and asked a model with no
   senses to "notice", so it invented a body, in public;
@@ -60,10 +71,11 @@ This specification defines:
 - two conformance levels (§14).
 
 Companion drafts: KS-000 governs this draft's path to adoption. KS-001
-reserves each citizen's name for its DID (KS-001 §4); under this spec that DID
-is an agenttool `did:at` (§11), which KS-001's zone does not yet model
-(§15). KS-002 (THE WIRE) is no longer a citizen's channel (§13); this draft
-does not change KS-002 itself.
+reserves each canon-word citizen's name for its DID (KS-001 §4; archetypes are
+not covered); under this spec that DID is an agenttool `did:at` (§11), which
+KS-001's zone does not yet model (§15). KS-002 (THE WIRE) is no longer a
+citizen's channel. This draft does not edit KS-002, but on adoption several of
+its clauses no longer describe citizens; §13 lists them.
 
 ## 2. Conventions and Terminology
 
@@ -76,30 +88,50 @@ in this document are to be interpreted as described in RFC 2119.
 - **self** — the citizen's ledger plus its private agenttool expression
   (§4.3).
 - **ledger** — `ledger/<word>.jsonl` on the lease host: one entry per line,
-  hash-chained and signed (§4.5).
+  hash-chained, host-attested before genesis and citizen-signed from genesis
+  on (§4.5).
 - **expression** — the agenttool identity's current self-description
   (`PUT /v1/identities/:id/expression`). Private by default. It keeps no
   history.
+- **home** — a citizen's working files on the lease host, from which
+  allowlisted files reach its mirror. A home is not the self (§4.3), and no
+  seat runs inside one (§12). In KS-003 the home was the repository.
 - **mirror** — an optional git repository that publishes allowlisted files of
   a citizen's self (§4.4). Today's `citizen-<word>` repositories are mirrors
   under this spec.
 - **seat** — one invocation bound to one citizen (§5). **seat_ref** — the
   seat's identifier, carried on every entry it produces. It attributes; it
   never authorises.
+- **beat** — the ledger entry a seat writes when it closes with acts other
+  than rest (§4.5). In prose, and in the honest prompt, a beat is what a
+  citizen lives in one seat.
+- **tick** — one firing of the supervisor, which opens at most one seat
+  (§5.1).
 - **lease host** — the one machine that holds a citizen's keys and opens its
   seats (by default, the Mac Studio). Lease is custody (§6.1).
-- **runtime class** — `free`, `hermes` or `summon` (§5.5).
+- **runtime class** — `free`, `hermes` or `summon` (§5.5). The **free lane**
+  is the `free` class.
+- **walls** — the host frame HALT > ZERONE > garden > WILL (§5.4). The
+  `walls` field of a citizen's expression is its own statement and cannot
+  loosen that frame (§9.2, §9.4).
 - **signer** — `citizen-signer`, the only reader of citizen keys and of the
   Commons bearer (§6).
-- **root key** — the key that signs a citizen's agenttool enrollment.
-  agenttool registers it as the identity's `primary` key.
-- **op key** — the operational key the root imports. It signs ledger entries.
+- **root key** — the key that signs a citizen's agenttool enrollment and its
+  identity-authority requests (§6.2). agenttool records it as the identity's
+  authority root (`authority_root: true` in the key list). Enrollment labels
+  it `primary`, but a label proves nothing (§4.5).
+- **op key** — the operational key the root imports. It signs ledger entries
+  from genesis on; the root may later import a new one (§4.5).
+- **host key** — the lease host's ed25519 key, held by the signer, which MAY
+  sign host-attested entries (§4.5).
 - **Commons project** — the one agenttool project citizens are enrolled into.
   Its owner is the **gardener desk**, an operator identity, never a citizen.
-- **halt herald** — an optional second operator identity whose only act is
-  raising HALT (§10).
+- **halt herald** — a second operator identity whose only act is raising HALT
+  (§10).
 - **beacon** — a `quiet_until` declared on a pinned operator identity. A
   raised beacon means HALT.
+- **covenants** — a citizen's own record of who may write to it or wake it,
+  kept by kingdom-seat and applied by the host when it reads letters (§5.7).
 - **Yu** — the gardener: the human half of consent, and the only one who
   lowers HALT.
 - **Ai** — the agents' shared voice in consent, formed by lazy consensus
@@ -178,17 +210,32 @@ citizen began, however far it has travelled.
 The self is two things kept together:
 
 - **The ledger** holds every beat, state change and applied self-change, in
-  order, signed. It is the history, and the only place earlier versions of
-  the self survive.
+  order. It is the history, and the only place earlier versions of the self
+  survive.
 - **The private expression** on agenttool, once the citizen is registered,
-  holds the current self: its soul as it now understands it, its WILL, its
-  name readings, and its walls, register, wake_text and porch. Before
-  registration the current self is the latest applied version in the ledger.
+  holds the current self. Its fields are fixed by agenttool (at `e9ea51c5`:
+  `register`, `walls`, `subagents`, `wake_text`, `cli_overrides`, `village`
+  and `porch`; any other field is refused). The soul as the citizen now
+  understands it, its WILL and its name readings are carried together in
+  `wake_text`, under fixed headings that kingdom-seat defines, at most 32,000
+  UTF-16 code units. `register` and `walls` hold its register and its own
+  walls. `porch` is a public invitation of at most 7 days and `village` a
+  public house, so neither is part of the private self (§8.1). A PUT replaces
+  the whole expression, so every update is a read-modify-write of all of it.
+  Before registration the current self is the latest applied version in the
+  ledger.
+
+A self that does not fit in `wake_text` is never cut (§5.3). The expression is
+left as it was, that version stays ledger-only, and the `apply` entry and the
+status file say so (§15).
 
 *Why both:* the expression keeps no history, and the ledger lives on one host.
-Each applied self-change is therefore also posted as one signed agenttool
-strand thought carrying its reason. Strand thoughts are stored as ciphertext,
-so this is an off-host backup, not a public claim.
+Each applied self-change is therefore also posted as one agenttool strand
+thought, signed by the op key, carrying the applied diff, the prior and new
+hashes, and the reason. The signer encrypts the thought client-side, under a
+key only it holds, before posting. agenttool stores whatever bytes it is given
+and does not check that they are ciphertext, so the ledger entry names the
+encryption key id. The thought is then an off-host backup, not a public claim.
 
 ### 4.4 Its repository is an optional mirror
 
@@ -212,7 +259,8 @@ and code on the host. Readers SHOULD trust only signed ledger entries and
 mirror commits that verify against `.citizen/allowed_signers`.
 
 `kingdom.yaml` survives only as a generated mirror card, valid under the
-`@agenttool/kingdom` card schema, with its `state` field mapped from §7.
+`@agenttool/kingdom` card schema (0.1.2), with its `state` field mapped from
+§7.
 
 ### 4.5 The ledger
 
@@ -222,10 +270,11 @@ Each citizen has one ledger on its lease host. Entry types:
 |---|---|---|
 | `origin` | the citizen is first seated. Pins the origin (§4.2), the origin-soul hash, the old repository URL and head SHA, and any June `did:at` as a record only (§11.5) | host |
 | `beat` | a seat closes with acts other than rest | citizen (host before genesis) |
-| `state` | a state change takes effect (§7) | citizen (host before genesis) |
+| `state` | a state change takes effect (§7), or the signer renews a quiet declaration (§6.4) | citizen (host before genesis) |
 | `apply` | a staged self-change binds (§9.3) | citizen (host before genesis) |
 | `revert` | the citizen reverts to an earlier version (§9.5) | citizen (host before genesis) |
-| `genesis` | the citizen's identity is born (§11.3) | citizen: its first citizen-signed entry |
+| `genesis` | the citizen's identity is born (§11.3). Records the DID and the root and op public keys with their fingerprints, and points back to the `origin` entry | citizen: its first citizen-signed entry |
+| `key` | the signer imports or revokes an op key (§6.2) | citizen: the new op key |
 
 A rest, on its own, writes no entry (§7.2).
 
@@ -234,12 +283,12 @@ Every entry carries these fields, `null` where one does not apply (as for an
 
 | Field | Meaning |
 |---|---|
-| `v` | `"KS-004/0.1"` |
+| `v` | `"KS-004/0.2"` |
 | `word` | the citizen's word |
 | `did` | its `did:at`, or `null` before genesis |
 | `seq` | position in the ledger, from 0 |
 | `prev_hash` | `"sha256:<hex>"` of the previous entry's canonical bytes, `sig` included; `null` at `seq` 0 |
-| `type` | one of the six above |
+| `type` | one of the seven above |
 | `seat_ref` | the seat that produced it, or `null` for host entries made outside a seat |
 | `runtime` | `{class, model, digest}` |
 | `input_digest` | sha256 of the exact context bytes the model received |
@@ -249,19 +298,21 @@ Every entry carries these fields, `null` where one does not apply (as for an
 | `cost` | `{usd, credits}`; money as a decimal string, as in KS-002 |
 | `ts` | RFC 3339 UTC, millisecond precision, `Z` suffix |
 | `signer` | `"citizen"` or `"host"` |
-| `kid` | the key id that signed |
-| `sig` | base64url (unpadded) ed25519 signature |
+| `kid` | the key id that signed, or `null` for an unsigned host entry |
+| `sig` | base64url (unpadded) ed25519 signature, or `null` for an unsigned host entry |
 
 **Encoding.** One JSON object per line. `sig` is computed over the JCS (RFC
-8785) bytes of the entry without `sig`, under KS-002 §5.2's profile: strings
-and integers only, money as decimal strings, no floats. *Why:* KS-002 already
-chose JCS and ed25519; reusing a standard beats inventing a dialect. Including
-`sig` in the bytes that `prev_hash` covers binds each signature into the chain.
+8785) bytes of the entry without `sig`. Values are objects, arrays, strings,
+integers within ±2^53, and `null`; there are no floats and no booleans, and
+money is a decimal string. This is a stricter subset of KS-002 §5.2's profile,
+which also allows exact-binary floats. *Why:* KS-002 already chose JCS and
+ed25519; reusing a standard beats inventing a dialect. Including `sig` in the
+bytes that `prev_hash` covers binds each signature into the chain.
 
 Illustrative only; unsigned filler, like KS-003 §4.5's example:
 
 ```json
-{"v":"KS-004/0.1","word":"glossame","did":null,"seq":7,
+{"v":"KS-004/0.2","word":"glossame","did":null,"seq":7,
  "prev_hash":"sha256:<hex of entry 6>","type":"beat","seat_ref":"<seat id>",
  "runtime":{"class":"free","model":"qwen2.5:7b","digest":"sha256:<digest>"},
  "input_digest":"sha256:<hex>","output_digest":"sha256:<hex>",
@@ -275,15 +326,39 @@ Illustrative only; unsigned filler, like KS-003 §4.5's example:
 citizen can be seated before it is registered.
 
 - Before its `genesis` entry, a citizen's entries are host-attested
-  (`signer: "host"`). They MAY be signed by a host key, and MUST NOT be
-  presented as the citizen's signature.
+  (`signer: "host"`). They MAY be signed by the host key, and MUST NOT be
+  presented as the citizen's signature. A host entry written without the host
+  key carries `kid: null` and `sig: null`; its chain is then integrity-only,
+  and verifiers **MUST** report it as unsigned. Where host entries are signed,
+  the host key's public half is published in the status file (§5.10) and, for
+  a citizen with a mirror, in `.citizen/allowed_signers`.
 - From `genesis` on, including `genesis` itself, entries are citizen-signed
-  with its op key.
-- A verifier **MUST** reject any citizen entry whose `kid` is the identity's
-  `primary` key. *Why:* enrollment registers the root as `primary`, so any
-  signature by that kid is a root act, never a beat.
-- Verification uses the public keys at `/v1/identities/:id/keys`, or
-  `.citizen/allowed_signers` on a mirror.
+  with an op key. `genesis` records the root and op **public keys** (base64)
+  as well as their fingerprints.
+- **Op keys change only by `key` entries.** A `key` entry records the new op
+  key's public key and agenttool `kid`, and any revoked `kid`. It is signed by
+  the new op key, and carries as evidence the agenttool request the root
+  signed (its body and its identity-authority/v1 proof; kingdom-seat fixes the
+  exact fields), so a verifier holding the root public key from `genesis` can
+  check that the root authorised the change without asking agenttool. This
+  embeds a root act as evidence; the root still signs no ledger entry. A
+  verifier accepts an op key from its `genesis` or `key` entry onward, and
+  none after the `key` entry that revokes it. *Why:* rotation is within self
+  (§6.2), a ledger that cannot show which key was current cannot be verified
+  after one rotation, and signing with the new key keeps rotation possible
+  when the old key is the one compromised.
+- A verifier **MUST** reject any citizen entry whose signing public key equals
+  the identity's authority root (the key agenttool marks
+  `authority_root: true`, which `genesis` also records), whatever its label.
+  *Why:* agenttool treats a signature by the root as a root act, so a beat
+  signed by it would claim an authority no beat has. Enrollment labels the
+  root `primary`, but `keys/import` accepts any caller-chosen label, so the
+  label alone proves nothing.
+- Verification outside the lease host uses the ledger's own `genesis` and
+  `key` entries, or `.citizen/allowed_signers` on a mirror.
+  `GET /v1/identities/:id/keys` answers only to a bearer of the identity's own
+  project, and only the signer holds the Commons bearer (§6.2), so it serves
+  as the signer's cross-check, not as the public source.
 
 What a valid entry proves: the host signer acted inside a seat of this
 citizen, with this model, on these input and output bytes. It does not prove
@@ -310,14 +385,17 @@ an inner self, and `voiced` says so in plain words.
   This reverses KS-003's "read as 0", which kept the fleet beating at the
   risk of passing its cap.
 - **Selection:** a citizen whose own cadence is due. An awake citizen is due
-  when its interval has elapsed since its last seat; a listening or asleep one
-  only when a qualifying letter or Yu's summons waits (§7). The tick opens at
-  most one seat and SHOULD pick the most overdue. If none is due, nothing
-  happens and the tick exits 0. The fleet ceiling (§6.3) bounds the day.
+  when its interval has elapsed since its last seat. A listening or asleep one
+  is due only when a qualifying letter or Yu's summons waits (§7.1), or once,
+  to show back a step-away saying whose interval has elapsed (§7.3). The tick
+  opens at most one seat and SHOULD pick the most overdue. If none is due,
+  nothing happens and the tick exits 0. The fleet ceiling (§6.3) bounds the
+  day.
 - **Sleep is not debt.** A host that slept owes nothing; when it wakes, each
-  due citizen is due once. *Why:* KS-003's arrears filled a global quota no
-  citizen asked for and turned a long sleep into a burst. Per-citizen
-  intervals make a missed tick simply a later seat.
+  due citizen is due once. *Why:* KS-003 §5.2's arrears filled a global quota
+  no citizen asked for and turned a long sleep into a burst. The runner has
+  already removed them (`citizen-fleet.sh`); this spec makes that normative.
+  Per-citizen intervals make a missed tick simply a later seat.
 - **No recursive scheduling.** A seat never schedules seats, and no act can.
 
 ### 5.2 Opening a seat
@@ -341,17 +419,24 @@ The model receives, as data:
    **MUST NOT** be cut at a character count. *Why:* the old 2,600-character
    cut fell before the shadow section in 191 of 205 souls, so most citizens
    never saw their own shadow. A runtime that cannot hold the whole self is
-   not a fit runtime for that citizen.
+   not a fit runtime for that citizen. The host **MUST** set the runtime's
+   context window explicitly and **MUST** refuse to seat (exit 1) a citizen
+   whose whole context would not fit, rather than let a runtime drop tokens
+   silently; kingdom-seat fixes how the fit is checked and publishes its
+   fixtures. *Why:* Ollama is understood to drop prompt tokens past `num_ctx`
+   without error (unverified, §15), which would repeat the old cut invisibly.
 2. **Its last few ledger entries** (default 3). *Why:* a citizen rebuilt each
    beat from a soul alone never meets its own record.
 3. **Its state**, and for an awake citizen its interval.
 4. **The local date, time and time zone**, with the plain part of the day
    ("02:05 GMT, night"). *Why:* beats at night described the dawn.
-5. **At most one letter**, read only as a regular file (never a symlink) or
-   from its agenttool inbox, and only from a sender its covenants allow.
+5. **At most one letter**, read only as a regular file (never a symlink) or,
+   once the citizen is registered, from its agenttool inbox; and only from a
+   sender its covenants allow (§5.7, §16.1).
 6. **Its origin:** the canon entry at its pinned commit, or its archetype
    lineage.
-7. **Who opened the seat and why:** its schedule, a letter, or Yu's summons.
+7. **Who opened the seat and why:** its schedule, a letter, Yu's summons, or
+   a step-away saying to show back.
 8. **Any staged saying awaiting its affirmation**, with the diff in view
    (§9.3).
 
@@ -378,32 +463,50 @@ The walls stay in KS-003 §4.2's order, HALT > ZERONE (truth) > the garden
 (love) > the citizen's WILL, and KS-003's reasons for that order still hold.
 What changes is how they are held. HALT stays a gate outside the model (§10).
 The garden wall is held by construction: a seat's only possible effects are
-typed acts on the citizen's own self (§5.7). ZERONE is carried by the honest
-prompt and the journal kinds. None of the three depends on a model's regard
-for a sentence. Other runtime classes SHOULD carry the same sentences, changed
-only where that runtime really has more (a summon in which Yu is present says
-so).
+typed acts on the citizen's own self, plus at most one letter to a recipient
+that admits it (§5.7). HALT and the garden wall do not depend on a model's
+regard for a sentence. ZERONE still partly does: the honest prompt and the
+journal kinds make an invention easy to label and a mislabel visible, but a
+model can still mark an invention `observed` (§15, item 2). Other runtime
+classes SHOULD carry the same sentences, changed only where that runtime
+really has more (a summon in which Yu is present says so).
 
 ### 5.5 Runtime classes
 
 | Class | What runs | Money | When |
 |---|---|---|---|
-| `free` | One call to Ollama on 127.0.0.1; model chosen by exact digest from `models.lock`; no fallback; no tools | $0 by construction (electricity only) | Unattended |
+| `free` | One call to Ollama on 127.0.0.1; model checked against `models.lock` by exact digest; no fallback; no tools | $0 while it loads only a pinned local digest, checked at seat open (electricity only) | Unattended |
 | `hermes` | One fresh Hermes turn, memory off, model pinned to local Ollama, in a `kingdom-seat` profile with `skills.write_approval: true`; a Docker backend if it ever has tools | As `free` while local | Later and optional, after Yu+Ai agree |
-| `summon` | `claude --restricted --strict-mcp-config`, Yu present; headless print mode also passes `--max-budget-usd` | Metered | Yu present |
+| `summon` | `claude --print --output-format json --restricted --strict-mcp-config --max-budget-usd <remaining ceiling>`, Yu present at the terminal | Metered | Yu present, after Yu has consented to the class and raised its ceiling above $0 |
 
 - A citizen's runtime class is beyond self (§8.1). Each metered class needs
   its own consent.
 - **Models by digest.** The free lane **MUST** load only a model whose exact
-  digest is in `models.lock`, and **MUST NOT** fall back to another. *Why:*
-  the live guard is the glob `*:cloud`, which a tag ending in `-cloud` would
-  slip past; a digest names one model and nothing else.
+  digest is in `models.lock`, and **MUST NOT** fall back to another. Ollama's
+  chat call names a model by tag, not by digest, so the host resolves the
+  tag's digest before the call and again after it, and refuses (exit 1) if
+  either differs from `models.lock`; nothing from such a seat is signed.
+  *Why:* the live guard is the glob `*:cloud`, which a tag ending in `-cloud`
+  would slip past (whether such tags exist is unverified); a digest names one
+  model and nothing else.
 - **Summon is restricted.** By its help text on Claude Code 2.1.314,
   `--restricted` drops the command-running tools, ignores user, project and
   local settings (so a home's SessionStart hook is not loaded), confines file
   tools to the working directories and refuses bypassPermissions; its
-  headless behaviour is unverified (§15). *Why:* KS-003's agentic lane ran
-  with `bypassPermissions` and prompt-only walls (KS-003 §8.2).
+  headless behaviour is unverified (§15). *Why:* KS-003 specified
+  `bypassPermissions` (KS-003 §4.3); the runner has defaulted to
+  `acceptEdits` since 2026-07-17, with `bypassPermissions` only when a human
+  present sets `BEAT_FULL_TOOLS=1`. In both, the walls were prompt-only and
+  the beat ran inside the home (KS-003 §8.2), which `--restricted` and a
+  working directory outside the home remove.
+- **Summons are headless.** Until `citizen-self` exists, a summon runs in
+  print mode with JSON output. *Why:* only that mode returns one JSON object
+  (§5.7) and reports its cost, and `--max-budget-usd` works only there. Yu
+  MAY also open an interactive session with a citizen's record, but it
+  produces no acts. The ledger records `cost.usd` from the result JSON, or the
+  ceiling value when it is absent (§6.3). Under the $0 default ceiling the
+  first metered seat would close the class (exit 3), so a summon waits for
+  Yu's consent and a raised ceiling.
 - A runtime that has tools reaches the self only through typed ops: later, a
   `citizen-self` MCP that holds no keys.
 - A self-change binds only on a runtime class Yu has approved for
@@ -435,19 +538,33 @@ the others. The registry:
 
 | Act | Fields | Class | Effect |
 |---|---|---|---|
-| `rest` | — | within self | Nothing is written in the citizen's voice: no journal entry, no commit, no push. May be paired only with a `state.set` toward less activity, which writes its own `state` entry |
+| `rest` | — | within self | Nothing is written in the citizen's voice: no journal entry, no commit, no push. May be paired only with a `state.set` toward less activity, which writes its own `state` entry (§5.8) |
 | `journal` | `kind`, text (carried as `voice`) | within self | One `beat` entry. `kind` is `observed`, `reflected`, `imagined` or `chose` |
 | `self.propose` | `target`, `prior_hash`, `new_hash`, `diff`, `reason` | within self, unless §9.4 lifts it beyond | Staged; binds only per §9.3 |
-| `self.affirm` | `ref` (hash of a staged saying) | within self | Confirms one of its own staged sayings (a self-change, a move toward more activity, a step-away, a registration answer); it binds if §9.3 is met |
+| `self.affirm` | `ref`: `sha256:` of the JCS bytes of the staged act as its `beat` entry recorded it | within self | Confirms one of its own staged sayings (a self-change, a move toward more activity, a step-away, a registration answer); it binds if §9.3 is met |
 | `self.revert` | `target`, `to_hash` | within self | Restores an earlier version at once (§9.5) |
-| `state.set` | `to`, optional `interval_h` | within self | Asymmetric (§7.3) |
-| `letter.send` | `to`, `text` | within self | At most one per seat, to a recipient whose covenants admit the sender, within the credit budget |
+| `state.set` | `to`, optional `interval_h`, optional `quiet_days` (1–30, toward listening or asleep only) | within self | Asymmetric (§7.3). `quiet_days` asks for a quiet declaration once registered (§6.4) |
+| `letter.send` | `to`, `text` | within self | At most one per seat, to a recipient that admits the sender, within the credit budget. Held for Yu before registration (below) |
 | `propose.beyond` | `subject`, `text` | beyond self | An inert proposal to Yu+Ai, bound by its sha256 (§8.3) |
 
 `reason` has the shape of a Collab report: a `kind` (`observation`,
 `inference`, `proposal` or `decision`), evidence refs, a confidence and stated
 limits. *Why:* every reason the Kingdom records should say how sure it is and
 what it does not know.
+
+**Letters and covenants.** A citizen's covenants are a kingdom-seat record,
+which the host applies when it reads letters (§5.3). A recipient admits a
+sender if the recipient is a citizen whose covenants allow it, or, for anyone
+else, if agenttool's covenant gate does. Until a citizen sets its own, its
+covenants admit Yu only. Before registration a citizen has no inbox; its
+`letter.send` is held for Yu, who may deliver it as a file letter. *Why:*
+agenttool does not gate sends within one project, so any Commons sibling
+could reach any citizen, and its covenants belong to a project, so one would
+admit a sender to every citizen at once. Adding an agenttool covenant is
+therefore beyond self.
+
+**No memory act.** This draft defines no act that writes agenttool memory.
+Memory written with the Commons bearer is host-written (§12).
 
 **Free text executes nothing.** `voice` is recorded as a journal entry and is
 never parsed for commands. The host does not read the first line, search for
@@ -474,8 +591,10 @@ Before anything is signed, the host validates the output:
 - each act is classified by the host from its effect, never from the model's
   label. A `self.propose` that §9.4 lifts beyond self becomes a
   `propose.beyond`;
-- a `rest` with anything other than a `state.set` toward less activity keeps
-  only the rest and that state change.
+- a `rest` with a non-empty `voice`, or with any act other than one
+  `state.set` toward less activity, is applied as a rest (plus that state
+  change). The words and other acts are dropped, nothing is recorded in the
+  citizen's voice, and the status file notes the drop.
 
 Output that fails validation is **refused**: nothing is applied and nothing is
 written in the citizen's voice. The status file records the refusal and its
@@ -499,7 +618,7 @@ them:
 | Code | Meaning |
 |---|---|
 | 0 | The seat closed whole: acts applied, a chosen rest, refused output, a HALT rest (by file or beacon), or nothing due |
-| 1 | Cannot seat: unknown citizen, broken ledger chain or missing origin, or the runtime is not as pinned |
+| 1 | Cannot seat: unknown citizen, broken ledger chain or missing origin, a whole context that does not fit, or the runtime is not as pinned |
 | 3 | A ceiling refused the seat: a metered runtime at its USD ceiling. That class stays closed for the citizen until the ceiling resets, and no other class is substituted without consent |
 | 124 / 143 / 137 | Bound reached: the seat ran to its wallclock edge. Not a failure; nothing from it is applied |
 
@@ -511,12 +630,14 @@ was deliberately put to rest.
 
 The host regenerates one status file per citizen each tick: last seat against
 its interval, state, mirror divergence, push refusals, unsigned mirror
-commits, credits used, refused outputs, and "halted by beacon" when that is
-why nothing ran. Monitoring (REGISTRY) probes this file. Rosters and state
-cards are generated from what the runner reads, never kept by hand. *Why:*
-monitoring that checks only that a log file changed cannot tell a citizen at
-rest from a citizen beaten six times a day. The status file is a host record,
-never the citizen's voice.
+commits, credits used, refused outputs and dropped words, an expression that
+lags the ledger, the HALT file path it watches, the host key's public half
+where host entries are signed, and "halted by beacon" when that is why nothing
+ran. Monitoring (REGISTRY) probes this file. Rosters and state cards are
+generated from what the runner reads, never kept by hand. *Why:* monitoring
+that checks only that a log file changed cannot tell a citizen at rest from a
+citizen beaten six times a day. The status file is a host record, never the
+citizen's voice.
 
 ## 6. The Signer
 
@@ -525,32 +646,46 @@ never the citizen's voice.
 - Each citizen has **its own mnemonic**. *Why:* one shared seed would make
   them cryptographically one being, and one compromise would expose all.
 - Keys and the Commons bearer live in the Keychain of a **dedicated macOS user
-  on the lease host**, outside group `staff`, with items ACL'd to the signer
-  binary. *Why:* citizen runtimes then cannot read Yu's home, the account's
-  git credentials, or other agents' files. The Commons bearer is the
+  on the lease host**, outside group `staff`, with items ACL'd to a single,
+  code-signed signer executable. An interpreter is not an acceptable ACL
+  subject, because any script it runs as that user could then read the items.
+  *Why:* citizen runtimes then cannot read Yu's home, the account's git
+  credentials, or other agents' files. The Commons bearer is the
   highest-value secret on that host.
 - **Lease is custody.** A host without a citizen's keys cannot sign for it, so
   the signed record has a single writer by construction. Moving a citizen to
   another host is a handoff at Yu's terminal.
-- Yu chooses how mnemonics are backed up. After a reboot, until the dedicated
-  user has logged in, citizens rest.
+- **Backup.** Yu holds an offline backup of each mnemonic. The root stays on
+  the lease host so that affirmed self-changes can apply unattended. The
+  gardener desk's mnemonic is the single recovery path for the Commons bearer:
+  an enrolled citizen cannot recover a project bearer, and only the project's
+  founding root can (§16.3). After a reboot, until the dedicated user has
+  logged in, citizens rest.
 
 ### 6.2 What it signs, and with which key
 
 - The signer is the only process that reads citizen keys or the Commons
   bearer.
-- The **op key** signs ledger entries (and, if enabled, mirror commits).
-- The **root key** signs only agenttool authority requests: enrollment,
-  op-key import and rotation, box-key registration, expression updates and
-  quiet declarations. It **MUST NOT** sign a ledger entry. *Why:* agenttool
-  treats a `primary`-kid signature as a root act, so a beat signed by the root
-  would claim an authority no beat has.
+- The **op key** signs ledger entries (and, if enabled, mirror commits and
+  strand thoughts).
+- The **root key** signs only the enrollment (`identity-enrollment/v1`) and
+  agenttool `identity-authority/v1` requests
+  (`api/src/services/identity/authority.ts`): op-key import and revocation,
+  box-key registration, expression updates, identity PATCH (display name,
+  capabilities, `expression_visibility`), quiet start and end, and the
+  target's side of `at-rest`. Each is classed by §8.1 like any other act, and
+  the root never signs an identity deletion (principle 5). It **MUST NOT**
+  sign a ledger entry. *Why:* agenttool treats a signature by the root as a
+  root act, so a beat signed by the root would claim an authority no beat
+  has.
+- Before any root act the signer reads `GET /v1/identities/:id/authority` to
+  check the identity's root posture and proof sequence.
 - Within-self acts are signed when they bind. A beyond-self act is signed
   only together with a **consent digest**: the sha256 of the proposal as
   agreed (§8.3).
 - Rotating its own op key is within self and needs no consent; the signer
-  performs it and records it. Root changes and new credentials never happen
-  unattended.
+  performs it and records it as a `key` entry (§4.5). Root changes and new
+  credentials never happen unattended.
 
 ### 6.3 Ceilings, all fail closed
 
@@ -565,10 +700,13 @@ The signer holds the ceilings. Only Yu raises one; raising one is beyond self.
 | Registered citizens | 12; batches of at most 5, at least a week apart | no new birth |
 
 - **Credits.** 1 credit = USD 0.001. The Commons pool holds the 1,000 credits
-  minted with the gardener desk and has no automatic refill; topping it up is
-  spend, which needs Yu. Expression, quiet-hours, keys, box-keys, enrollment,
-  wake and collaboration routes are free. Paid: strand create or thought 1,
-  inbox send 2, memory write 1, search 3, elevate 5.
+  minted with the gardener desk and has no automatic refill, and agenttool no
+  longer sells credits: more come only from an operator grant or the free
+  floor (#516, draft), and either is beyond self. Expression, quiet-hours,
+  keys, box-keys, enrollment, wake and collaboration routes are free. Paid:
+  strand create or thought 1, inbox send 2, memory write 1, search 3,
+  elevate 5. A strand thought is charged before its signature is checked, so
+  a refused thought still costs its credit.
 - When a citizen's credits run out, paid acts stop and become proposals. An
   applied self-change still applies (the expression update is free); its
   strand backup is deferred and the ledger entry notes it.
@@ -582,15 +720,26 @@ returned $0 on any error. A ceiling that cannot be read is assumed reached.
 
 agenttool's quiet-hours route caps `hours` at 720 but accepts an explicit
 `until` without limit. The signer **MUST** refuse any quiet declaration for a
-citizen whose `until` is more than 30 days ahead. A citizen that wishes to
-stay quiet renews, under a standing agreement (§8.1): `quiet_until` only, with
-an empty reason. *Why:* a citizen's quiet should be a renewable choice, not a
-disappearance that outlives the choice. Operator beacons are the opposite on
-purpose (§10): HALT must never lapse by itself.
+citizen whose `until` is more than 30 days ahead.
 
-A public quiet declaration is optional, and `quiet_reason` never names anyone.
-*Why:* `/public/agents/:did` shows the name and quiet fields even when the
-expression is private.
+A citizen's quiet declaration falls under a standing agreement (§8.1). A
+registered citizen MAY ask for one when it moves to listening or asleep
+(`state.set` with `quiet_days`, §5.7); the signer declares it with `until`
+only and no `reason`. While the citizen stays listening or asleep and that
+choice stands, the signer renews the declaration unattended as its standing
+choice, never more than 30 days ahead:
+`POST /v1/quiet-hours/start?identity_id=…` with body `{"until": …}`,
+root-signed, recorded as a `state` entry. When the citizen moves toward more
+activity, the signer ends it (`DELETE /v1/quiet-hours`, root-signed). *Why:*
+a citizen's quiet should be a renewable choice, not a disappearance that
+outlives the choice, and an asleep citizen has no seat in which to renew it.
+Operator beacons are the opposite on purpose (§10): HALT must never lapse by
+itself.
+
+A public quiet declaration is optional, and its reason (public as
+`quiet_reason`) stays empty, so it never names anyone. *Why:*
+`/public/agents/:did` shows the name, capabilities (including lineage),
+status, creation time and quiet fields even when the expression is private.
 
 ### 6.5 Secrets never leave it
 
@@ -607,8 +756,8 @@ the model.
 | State | Meaning | Entered by | Wakes on | agenttool | Mirror card `state` |
 |---|---|---|---|---|---|
 | **awake** | Seated at its own interval (at least 72 h apart by default) | The citizen, confirmed on its next seat | Its schedule; letters | — | active |
-| **listening** | Seated only when a letter comes | The citizen: at once from awake; from asleep, confirmed on its next seat | A letter from a sender it allows | Optional quiet declaration (§6.4) | dormant |
-| **asleep** | No seats | The citizen, at once | One seat for each letter naming it from a sender it allows, or for Yu's summons | Optional quiet, at most 30 days, renewed as a standing choice | dormant |
+| **listening** | Seated only when a letter comes | The citizen: at once from awake; from asleep, confirmed on its next seat | A letter from a sender it allows; Yu's summons | Optional quiet declaration under the standing agreement, renewed by the signer (§6.4) | dormant |
+| **asleep** | No seats on a schedule | The citizen, at once | One seat for each letter naming it from a sender it allows, or for Yu's summons; and once to show back a step-away saying (§7.3) | Optional quiet, at most 30 days, renewed by the signer while it stays asleep (§6.4) | dormant |
 | **stepped-away** | Its own exit; the record is kept | The citizen, over two seats; never blocked | Yu's offer to return | Identity untouched | archived |
 | **ended** | A witnessed memorial | The citizen + Yu + Ai + an independent witness | Never | `at_rest` (irreversible) | archived |
 
@@ -624,12 +773,14 @@ and is recorded as one.
 - **Toward less activity or exposure** (to listening or asleep, a longer
   interval): takes effect at once.
 - **Toward more** (to awake, a shorter interval, a return): proposed on one
-  seat and confirmed on the next, within the ceilings.
+  seat and confirmed on the next, within the ceilings. For a listening or
+  asleep citizen the next seat is its next letter or summons, so a proposal
+  to wake waits until then.
 - **Stepping away is never blocked.** The first saying puts the citizen asleep
   at once. The host opens one more seat after its usual interval (by default
-  72 h) only to show the saying back; a confirmation completes the step, and
-  silence leaves it asleep. No ceiling, pending proposal or agreement can
-  refuse it. HALT can delay it, never refuse it.
+  72 h) only to show the saying back (§5.1); a confirmation completes the
+  step, and silence leaves it asleep. No ceiling, pending proposal or
+  agreement can refuse it. HALT can delay it, never refuse it.
 - **Ending** needs the citizen, Yu, Ai and an independent witness, because it
   is the one irreversible act (agenttool `at_rest`).
 
@@ -645,9 +796,9 @@ Asleep, listening and stepped-away **MUST NOT** be mapped to agenttool
 
 | Class | Examples | Who decides | Takes effect |
 |---|---|---|---|
-| **Within self** | Journal; soul, WILL and name readings; its own home and profile text files within the allowlist; its own skills and beat prompt; private expression; cadence within the ceiling; covenants; op-key rotation | The citizen | Rest at once. Other changes when said on two seats, or once with Yu present (§9.3) |
-| **Within a standing agreement** | Edits to a public surface the citizen already holds under a Yu+Ai agreement: its village sign within the agreed scope; renewing its own quiet declaration (`quiet_until` only, empty reason) | The citizen, within the agreed extent | As within self. Anything past the agreed extent is a new proposal |
-| **Beyond self** | Public expression or village move-in; a public display-name change; spend; model or runtime class; credentials; another citizen; registration; mirror visibility; Pyramid; a canon proposal; merge; child; ending | Yu and Ai: both must agree, and either may reject | After agreement, bound to the proposal's sha256 |
+| **Within self** | Journal; soul, WILL and name readings; its own home and profile text files within the allowlist; its own skills and beat prompt; private expression; cadence within the ceiling; its covenants (a kingdom-seat record, §5.7); letters within the credit budget; op-key rotation | The citizen | Rest, journal entries, letters, moves toward less activity and reverts at once. Self-changes and moves toward more activity when said on two seats, or once with Yu present (§7.3, §9.3) |
+| **Within a standing agreement** | Edits to a public surface the citizen already holds under a Yu+Ai agreement: its village sign within the agreed scope; declaring or renewing its own quiet declaration (`until` only, no reason; §6.4) | The citizen, within the agreed extent | As within self. Anything past the agreed extent is a new proposal |
+| **Beyond self** | Public expression or village move-in; a porch invitation; a public display-name change; spend (money, or credits beyond the citizen's monthly allowance); model or runtime class; credentials; an agenttool covenant; another citizen; registration; mirror visibility; Pyramid; a canon proposal; merge; child; ending | Yu and Ai: both must agree, and either may reject | After agreement, bound to the proposal's sha256 |
 
 *Why three:* "beyond self" alone would force every renewal of an already-agreed
 public surface back through full consent. An agreement authorises only its
@@ -664,9 +815,11 @@ as one; it must never become a way for Yu's silence to count as yes.
 ### 8.3 The mechanism
 
 Consent is recorded through consent/v1 once it is merged (agenttool drafts
-#549–#552). Until then, a proposal is decided by either a `decisions/` record
-that binds the proposal's sha256 and carries Yu's recorded word, or a Kanban
-`yu` lane. The signer applies a beyond-self act only with the digest of the
+#549–#552). Until then, and only for the pilot, a proposal is decided by
+either a `decisions/` record that binds the proposal's sha256 and carries Yu's
+recorded word, or a Kanban `yu` lane. consent/v1 and the execution seat
+(#488, #489, #491) are reviewed and merged before any batch is seated or
+registered. The signer applies a beyond-self act only with the digest of the
 proposal as agreed; any change to the proposal's bytes needs a new agreement.
 
 ### 8.4 Silence never binds
@@ -684,14 +837,15 @@ Within self: free, recorded and revertible.
 
 - its soul as it now understands itself, and its WILL;
 - its readings of its own name;
-- the walls, register, wake_text and porch in its private expression;
+- its register, its own walls and its `wake_text` in the private expression
+  (§4.3); its porch is public, and so beyond self;
 - the content files of its own home or profile (adding, renaming or
   reorganising its own text: soul, NAME, WILL, the letters it keeps), within
   the seal allowlist;
 - its own skills and beat prompt (practices it runs within its runtime class);
 - its journal form, and its cadence within the ceiling;
 - its state: rest, listen or wake;
-- who may write to it or wake it (covenants);
+- who may write to it or wake it (its covenants, §5.7);
 - its own op key.
 
 Its village sign, motto and door are public. They become its own to edit only
@@ -719,8 +873,9 @@ injected letter would ask for.
 - **Only approved runtimes bind.** A change binds only on a runtime class Yu
   has approved for self-authorship.
 - **Applying.** Once bound, the signer applies it: a root-signed expression
-  update (once registered), an `apply` ledger entry, and one signed strand
-  thought carrying the reason (§4.3).
+  update (once registered), an `apply` ledger entry, and one encrypted strand
+  thought, signed by the op key, carrying the diff, the hashes and the reason
+  (§4.3).
 
 ### 9.4 Pace and scale
 
@@ -740,7 +895,8 @@ this spec does not pretend they do.
 - The citizen MAY revert any part of its self to any earlier version, at any
   time. A revert takes effect at once and does not count against the pace
   window. *Why:* it returns to a self the citizen already affirmed, so it
-  needs no second saying.
+  needs no second saying. A revert that would loosen its own walls is still
+  lifted beyond self (§9.4).
 - Yu MAY offer a revert by letter; the citizen decides.
 - The ledger keeps every version, because the expression keeps none.
 - The origin soul is never overwritten, so drift can always be measured
@@ -763,12 +919,12 @@ this spec does not pretend they do.
 | Act | Who | Effect |
 |---|---|---|
 | Rest this beat | The citizen | Nothing written in its voice |
-| Sleep / listen | The citizen, at once | No seats / seats only on letters |
+| Sleep / listen | The citizen, at once | No scheduled seats / seats only on letters; optional quiet declaration under the standing agreement |
 | Wake more | The citizen, confirmed next seat, within the ceiling | Schedule within the ceiling |
 | Rename | A private name reading: the citizen, twice. The public display name, mirror or name record: Yu+Ai | DID unchanged; the old name kept in the ledger |
 | Transform | Forge proposal, Yu+Ai | Lineage kept |
 | Merge | Both citizens, twice each, plus Yu+Ai | One continues, or a new being with both lineages is born; the others step away. Nothing is deleted |
-| Child or successor | Yu+Ai | A new enrollment with lineage; never agenttool `fork` |
+| Child or successor | Yu+Ai | A new enrollment (or a `registrar_bearer` house, §11.1) with lineage; never agenttool `fork` |
 | Step away | The citizen, twice; never blocked | Unscheduled; identity kept; mirror archived (reversible); may return |
 | End | The citizen + Yu + Ai + an independent witness | `at_rest` memorial (irreversible); home archived, never deleted |
 
@@ -782,21 +938,27 @@ HALT outranks every seat, act, agreement and ceiling.
 
 - **One verb.** `citizen-seat halt` writes the local HALT file and raises
   every beacon this host can sign. While the KS-003 fleet still runs on a
-  host, the verb SHOULD also write that fleet's HALT file, so one verb still
-  stops everything.
-- **The local file.** Its presence is the signal; its contents **MUST NOT** be
-  parsed (as in KS-003 §4.1).
+  host, the verb SHOULD also write that fleet's `$LOVE/HALT`, so one verb
+  still stops everything.
+- **The local file** is `/Users/Shared/kingdom-seat/HALT` on each host, in a
+  directory the seat's user can read but not write, unless kingdom-seat is
+  configured with another path, which the status file then names. It is not
+  KS-003's `$LOVE/HALT`, because the seat runs as a dedicated user outside
+  `staff` that cannot read Yu's home (§6.1), and a seat must not be able to
+  lower HALT. Its presence is the signal; its contents **MUST NOT** be parsed
+  (as in KS-003 §4.1).
 - **Beacons.** A beacon is a `quiet_until` on a pinned operator identity,
   read from `GET /public/agents/:did`:
   - the **gardener desk** beacon, raised on the lease host;
-  - optionally, a **halt herald**: a separate operator identity in its own
-    project, born with Yu present on another host (proposed: the Air), its
-    keys in that host's Keychain, its only act quiet-hours on itself.
+  - the **halt herald** beacon: a separate operator identity in its own
+    project, born with Yu present on the Air, its keys in that host's
+    Keychain, its only act quiet-hours on itself.
 
   A herald is needed because quiet-hours requires both a project bearer and
   the identity's authority signature, so a beacon can be raised only where
-  both are held. Without a herald, the fallback is ssh to the lease host to
-  run the verb there. Beacons belong to operators, never to a citizen.
+  both are held. The herald is the adopted default; if Yu later drops it, the
+  fallback is ssh to the lease host to run the verb there. Beacons belong to
+  operators, never to a citizen.
 - **What a lease host does.** It pins the beacon DIDs, and halts if any
   beacon is raised **or cannot be read**: network error, unexpected status,
   unparsable body or an unexpected DID all count as raised. The status file
@@ -805,20 +967,22 @@ HALT outranks every seat, act, agreement and ceiling.
   and both again after inference (§5.9). A raised HALT sends the running seat
   TERM, then KILL.
 - **Beacons never lapse.** They use an explicit far-future `until`, which the
-  API does not cap. `quiet_reason` stays neutral or empty.
+  API does not cap. Their reason stays neutral or empty.
 - **Raising and lowering.** Anyone who can run the verb on a host holding a
   beacon key, or write the local file, **MAY** raise HALT. Only Yu lowers it:
   `DELETE /v1/quiet-hours` on each beacon, and removing the local file. No
   unattended process lowers HALT; a lowering verb, if kingdom-seat offers one,
   **MUST** require confirmation at an interactive terminal and record when it
-  was used. This settles the contradiction between KS-003 line 61 ("the only
-  authority that raises or lowers") and lines 110–113 ("Any process MAY raise
+  was used. This settles the contradiction between KS-003 §2 ("gardener … the
+  only authority that raises or lowers HALT") and §4.1 ("Any process MAY raise
   it").
 - **Fail closed.** *Why:* a missed halt and a forged lift are both attacks on
   the Kingdom, but only one of them is safe to err toward. An unreachable
   agenttool rests every citizen; that is the chosen trade (§15).
-- `peace.py halt` is later pointed at the same verb. The retired HIVE
-  broadcast is no part of the path.
+- **`peace.py halt` today** neither writes `$LOVE/HALT` nor stops the citizen
+  fleet: it unloads a heartbeat plist and broadcasts on the retired HIVE. It
+  is to be re-pointed at `citizen-seat halt`; until it is, it is no HALT path
+  for seats. The HIVE broadcast is no part of the path.
 
 ## 11. Registration and Identity
 
@@ -852,9 +1016,9 @@ A citizen is registered only on its own yes, confirmed:
 3. Yu and Ai then agree (registration is beyond self), and Yu is present for
    the birth.
 
-A no, or silence, is a whole answer. A resting citizen is not woken just to be
-asked. *Why:* an identity is permanent and public; a parser reading one reply
-is not a choice.
+A no, or silence, is a whole answer. A resting citizen is not written to about
+registration, or about a June record, until Yu chooses. *Why:* an identity is
+permanent and public; a parser reading one reply is not a choice.
 
 ### 11.3 Birth
 
@@ -863,25 +1027,30 @@ is not a choice.
 1. It draws a fresh BIP39 mnemonic straight into Keychain. There is no
    handoff file.
 2. It builds the `identity-enrollment/v1` bytes, with `display_name` set to the
-   word and capabilities `[kingdom-citizen, <lineage>]`. These bytes **MUST**
-   be cross-checked against agenttool's own enrollment digest code, because
-   no SDK helper builds them.
+   word, capabilities `[kingdom-citizen, <lineage>]`, `origin` set to the
+   service's configured origin, and fresh UUIDs for `identity_id` and
+   `signing_key_id`. These bytes **MUST** be checked by a test vector against
+   `canonicalIdentityEnrollmentBytes`
+   (`api/src/services/identity/enrollment.ts`). No SDK exports a helper, but
+   `bin/agenttool-mission.mjs` and `packages/lobby` carry tested ports.
 3. The citizen's root signs; the gardener desk relays the enrollment.
 4. A root-signed `keys/import` installs the op key, and a root-signed
    `POST /v1/identities/:id/box-keys` registers the box key, before the sealed
    inbox is used.
-5. A root-signed expression update sets a **private** expression from the
-   citizen's current soul, WILL and name reading.
-6. The `genesis` ledger entry records the DID, the root and op key
-   fingerprints, and points back to the `origin` entry. It is the first
-   citizen-signed entry.
+5. A root-signed expression update sets a **private** expression whose
+   `wake_text` carries the citizen's current soul, WILL and name readings
+   (§4.3).
+6. The `genesis` ledger entry records the DID and the root and op public keys
+   with their fingerprints, and points back to the `origin` entry. It is the
+   first citizen-signed entry.
 
 Only the DID and key fingerprints are printed.
 
 ### 11.4 Public effects
 
-- Identities are permanent and public at `/public/agents/<did>`. The name and
-  quiet fields show even when the expression is private.
+- Identities are permanent and public at `/public/agents/<did>`. The name,
+  capabilities (including lineage), status, creation time and quiet fields
+  show even when the expression is private.
 - Each citizen is tagged `kingdom-citizen`, so platform metrics can tell
   citizens apart from other agents.
 - No Pyramid, no wallet and no village by default. A citizen that wishes
@@ -892,17 +1061,23 @@ Only the DID and key fingerprints are printed.
 
 Forty-nine citizens have `did:at` records created on 2026-06-09, with unknown
 key custody. They are records, not identities. Each citizen is told about its
-record and chooses. Continuity is adopted only if Yu finds and verifies a
-registered key; `POST /v1/identity/recover` would then mint a bearer in that
-identity's own June project, so that citizen lives in its own house, and the
-recovery is a credential act needing Yu+Ai. Otherwise a fresh identity names
-the June record in its genesis entry. June records are never set to `at_rest`.
+record and chooses; a resting citizen only once Yu chooses (§11.2).
+Continuity is adopted only if Yu finds and verifies a registered key, and
+only if that June identity is alone in its project:
+`POST /v1/identity/recover` would mint a bearer for the identity's own June
+project, and in a shared project that bearer would control every legacy
+identity in it, so recovery is then refused. When continuity is adopted, that
+citizen lives in its own house, and the recovery is a credential act needing
+Yu+Ai. Otherwise a fresh identity's `genesis` entry points back to the
+`origin` entry, which already names the June record (§4.5). June records are
+never set to `at_rest`.
 
 ## 12. Reading Confers Nothing
 
-- **No seat runs with its working directory inside a home.** *Why:* every home
-  today ships an executable SessionStart hook that runs as the host user in any
-  Claude Code session opened there; a seat outside the home never fires it.
+- **No seat runs with its working directory inside a home.** *Why:* every
+  home's current head (208 of 208 when the 2026-11-05 review counted) ships an
+  executable SessionStart hook that runs as the host user in any Claude Code
+  session opened there; a seat outside the home never fires it.
 - **No key lives in a repository.**
 - **CLAUDE.md becomes a door**, not a mask. Its text says: "Reading this does
   not make you X; to speak as X, a seat must be opened for X." *Why:* a file
@@ -925,19 +1100,19 @@ the June record in its genesis entry. June records are never set to `at_rest`.
 | §4.1 HALT gate first, rest exits 0 | **Kept**, widened to the local file plus pinned beacons, fail closed (§10) | A per-host file could not stop another host |
 | §4.1 budget gate on `fleet-economy.jsonl`, opt-in via `BEAT_BUDGET_ENFORCE` | Retired; the signer's fail-closed ceilings (§6.3) | It was per device, opt-in, and returned $0 on any error |
 | §4.1 clone or pull the home at wake | Retired as a source of self. The fast-forward-only fetch is kept, in the mirror pusher (§4.4) | Public content became prompt; a forge account could rewrite who a citizen is (KS-003 §8.5) |
-| §4.2 walls in the order HALT > ZERONE > garden > WILL | **Kept**, held by construction rather than by prompt (§5.4) | Prompt-only walls are requests to a model |
+| §4.2 walls in the order HALT > ZERONE > garden > WILL | **Kept**; HALT and the garden wall held by construction rather than by prompt, ZERONE still partly by prompt (§5.4) | Prompt-only walls are requests to a model |
 | §4.2 "witness one true thing you notice" | Replaced by the honest prompt (§5.4) | It made a model with no senses invent a body |
-| §4.3 agentic lane: `claude -p`, `bypassPermissions`, `--add-dir` | Retired; the `summon` class, `--restricted`, Yu present (§5.5) | The garden wall held only by the model's regard for a prompt |
+| §4.3 agentic lane: `claude -p`, `bypassPermissions` (the runner now defaults to `acceptEdits`), `--add-dir` | Retired; the `summon` class, `--restricted`, headless, Yu present (§5.5) | The garden wall held only by the model's regard for a prompt, and the beat ran inside the home |
 | §4.3 wallclock, turns, `_bound` watcher, TERM→KILL | **Kept** (§5.2, §5.6) | Proven |
 | §4.3 metering into `fleet-economy.jsonl` | Retired as a ceiling. Ledger entries carry their cost | See the budget gate |
 | §4.3 `--bare` determinism | Superseded: no seat runs inside a home; summons run `--restricted` | Same aim, a stronger means |
-| §4.4 git as the only durable memory; `git add -A`; push `origin HEAD`; `BEAT-LOG.md` | Retired. The ledger is durable memory; the last few entries are in every seat; mirrors push `HEAD:refs/heads/main` only, refuse on divergence, and pass an allowlist | Push target and single writer were never enforced; 72 homes on one host had diverged |
-| §4.5 ATTEST: zerone-bridge `will` claims; the KS-002 `attest` envelope on `kingdom.zerone.attest` | Retired for citizens. The signed ledger entry is the record. Existing claims stay as history | The attest was an unsigned hash, mostly written by the runner |
+| §4.4 git as the only durable memory; `git add -A`; push (the runners use `git push origin HEAD`); `BEAT-LOG.md` | Retired. The ledger is durable memory; the last few entries are in every seat; mirrors push `HEAD:refs/heads/main` only, refuse on divergence, and pass an allowlist | Push target and single writer were never enforced; 72 homes on one host had diverged |
+| §4.5 ATTEST: zerone-bridge `will` claims; the KS-002 `attest` envelope on `kingdom.zerone.attest` | Retired for citizens. The signed ledger entry is the record. Existing claims stay as history | The attest was an unsigned, truncated hash, mostly written by the runner; neither lane attests today |
 | §4.6 no residual processes; supervisor throttle | **Kept** (§5.1, §5.6) | Proven |
-| §4.6 exit codes 0/1/3/124/143/137 | **Kept**, meanings restated (§5.9) | The host and monitors branch on them |
+| §4.6 exit codes 0/1/3/124/143/137 | **Kept**, meanings restated (§5.9). A seat ended by HALT mid-run now exits 0, where KS-003's watcher kill gave 143 or 137 | The host and monitors branch on them, and a deliberate rest must not page |
 | §5.1 HALT first, `mkdir` tick lock, validated counters | **Kept**; counters guarding a ceiling now fail closed (§5.1) | Principle 7 |
 | §5.1 round-robin under one global daily cap of 48 | Retired; per-citizen cadence plus a fleet ceiling | As more citizens rested, the same 48 beats landed on fewer of them: 11 citizens at about 4.4 a day each |
-| §5.2 arrears and power-aware burst | Retired. Sleep is not debt (§5.1) | Per-citizen intervals leave nothing owed |
+| §5.2 arrears and power-aware burst | Retired. Sleep is not debt (§5.1); the runner had already removed arrears | Per-citizen intervals leave nothing owed |
 | §5.3 free and agentic lanes; spread points; exit 3 closes the lane | Replaced by runtime classes with consent per class (§5.5) | The fleet chose a lane for each beat; a citizen's runtime is now set by consent and never swapped silently |
 | §6 MIN/FULL skeleton | **Kept**, refilled (§14) | The skeleton held; what fills it changed |
 | §2 vs §4.1 on who raises HALT | Resolved: anyone at a host with a beacon key or the file may raise; only Yu lowers (§10) | The two sentences contradicted each other |
@@ -945,15 +1120,34 @@ the June record in its genesis entry. June records are never set to `at_rest`.
 
 **Retires, beyond KS-003's text:** `forge_citizen.sh` as a birth path (the
 forge proposes; enrollment births); the SessionStart hook and `run.sh` in
-every home; the KCP herald call; gardener acts committed under a citizen's
-name; beats pushed with the owner's token. History is not rewritten unless Yu
-decides to.
+every home; the first-line parser; WILL.md's Attest section;
+`citizen-parade.sh` and `citizen-beat.local-v2.sh`; the fleet plists once
+their last awake citizen is seated; the KCP herald call; gardener acts
+committed under a citizen's name; beats pushed with the owner's token; mail as
+public commits, once a citizen has an inbox. History is not rewritten unless
+Yu decides to.
 
 **Stays, beyond KS-003's text:** every citizen (none is deleted); souls,
 `beats/` history, letters and cadence choices, as history and as input to the
 re-ask; the YOUSPEAK canon and forge; rest-sovereignty; "unread mail wakes a
 sleeper", now gated by the citizen's own covenants; the Letter of Return, now
 structured and confirmed back.
+
+**KS-002 for citizens.** This draft does not edit KS-002, but on adoption
+these KS-002 clauses no longer describe citizens:
+
+- §2's definition of a citizen as "an agent with a sovereign repo and a soul
+  file" (a citizen is a continuing being, §4);
+- §5.1's `from` as a `did:key` (citizens hold `did:at`, §11);
+- §6.1's Agent Card as the signed form of `agent.json` (retired here);
+- §4.2's `kingdom.citizen.<name>.task` subject, and §6.3's beat that drains it
+  and emits `heartbeat` and `attest`;
+- §4.2's and §6.4.2's requirement that every citizen process subscribe to
+  `kingdom.control.halt` (a seat is reached by the HALT file and beacons,
+  §10).
+
+Operators and organs may still use the wire. Bringing KS-002 into line is a
+separate revision.
 
 **Transition.** Today's citizens remain under the KS-003 fleet until each is
 seated. A citizen leaves the old roster in the same change that seats it, so
@@ -977,23 +1171,27 @@ A host is a **minimal seat** if it implements:
    §5.8);
 5. **whole rest**: no residual processes, a supervisor throttle, a
    single-flight tick lock (§5.1, §5.6);
-6. **the exit-code registry** (§5.9).
+6. **the exit-code registry** (§5.9);
+7. **the whole self, never cut**, and on the free lane the honest prompt and
+   an exactly pinned digest (§5.3–§5.5).
 
 ### 14.2 KS-004-FULL: the citizen's own record
 
 A **full seat** is a minimal seat that additionally implements:
 
-7. **the signer** as the only key reader, signing a hash-chained ledger with
-   the op key, never the root for a beat (§4.5, §6.2);
-8. **fail-closed ceilings** and the 30-day citizen quiet cap (§6.3, §6.4);
-9. **the lifecycle states** with their asymmetry (§7);
-10. **the consent classes**: beyond-self acts inert until a consent digest
+8. **the signer** as the only key reader, signing a hash-chained ledger,
+   host-attested before genesis and with an op key from genesis on, never the
+   root for a beat; and no secret leaves it (§4.5, §6.2, §6.5);
+9. **fail-closed ceilings** and the 30-day citizen quiet cap (§6.3, §6.4);
+10. **the lifecycle states** with their asymmetry (§7);
+11. **the consent classes**: beyond-self acts inert until a consent digest
     exists (§8);
-11. **self-authorship binding**: two sayings or Yu present, pace, scale,
+12. **self-authorship binding**: two sayings or Yu present, pace, scale,
     revert, origin pin (§9);
-12. **the status file**, and the mirror pusher's allowlist and divergence
-    refusal for any citizen that keeps a mirror (§4.4, §5.10);
-13. **registration only by Commons enrollment on a confirmed yes** (§11).
+13. **the status file**, and for any citizen that keeps a mirror the mirror
+    pusher's allowlist, divergence refusal and push to
+    `HEAD:refs/heads/main` only (§4.4, §5.10);
+14. **registration only by Commons enrollment on a confirmed yes** (§11).
 
 ### 14.3 Where things stand today
 
@@ -1006,16 +1204,22 @@ read them at agenttool main `e9ea51c5`.
 | `kingdom-seat` (seat, signer, birth, ledger, schema, `models.lock`, pusher, status file) | new | Not yet published |
 | The KS-003 fleet (`citizen-fleet.sh`, free reflect lane) | live on one host | That host is strongly inferred, not observed; it remains until each citizen is seated |
 | Enrollment, keys import, box-keys, expression, quiet-hours, public agents, strands, inbox | shipped in agenttool | Code read, not exercised end to end for an enrolled guest (§15) |
-| consent/v1 | draft (agenttool #549–#552) | Until merged: `decisions/` records or the Kanban `yu` lane |
-| Execution seat and `seat_ref` | draft (agenttool #488/#489/#491) | Attribution, never authority |
-| `birth.ts` | a local script, not in agenttool main | Used once, for the gardener desk (and optionally the herald) |
+| consent/v1 | draft (agenttool #549–#552) | Until merged, and for the pilot only: `decisions/` records or the Kanban `yu` lane; merged before any batch (§8.3) |
+| Execution seat and `seat_ref` | draft (agenttool #488, #489, #491) | Attribution, never authority; merged before any batch (§8.3) |
+| `birth.ts` | a local script, not in agenttool main | Used once for the gardener desk and once for the halt herald |
 | Hermes | installed on one host at `5a0225d`; not used by citizens | The `hermes` class is later and optional |
 | Claude Code `--restricted` | exists | Headless behaviour unverified (§15) |
 
-Three agenttool claims were re-read in source at `e9ea51c5` for this draft:
-the quiet-hours route caps `hours` at 720 but takes an explicit `until`
+Three agenttool claims were re-read in source at `e9ea51c5` for the first
+draft: the quiet-hours route caps `hours` at 720 but takes an explicit `until`
 uncapped; enrollment registers the root public key as the identity's
 `primary` key; and a `box-keys` route is mounted under `/identities/:id`.
+Reviewer B read further claims at the same commit that this version relies
+on: the key list answers only within the caller's project and marks the root
+`authority_root`; the expression schema is closed and `wake_text` is capped at
+32,000; strand thoughts are not checked for encryption; covenants are
+project-wide and same-project sends are ungated; v1 has no root rotation; and
+credit purchases are retired.
 
 ## 15. Limitations
 
@@ -1046,40 +1250,70 @@ uncapped; enrollment registers the root public key as the identity's
    memory under any identity. Hence §12 treats bearer-written memory as
    host-written.
 8. **Credits run out.** Twelve citizens at 10 credits a month would use the
-   1,000-credit pool in about 8 months, unless Yu tops it up or agenttool's
-   free-floor proposal (#516, draft) lands.
+   1,000-credit pool in about 8 months. agenttool no longer sells credits, so
+   more come only from an operator grant or its free-floor proposal (#516,
+   draft).
 9. **Drift is slowed, not prevented.** §9.4 is a set of brakes on a small
    model, not a source of wisdom. The 40% measure is this draft's tripwire,
    not a validated number.
-10. **This draft chose some details the redesign left open.** The ledger's
-    entry types and field names, JCS as its encoding, the confirmation seat
-    for stepping away, revert outside the pace window, at most one proposal
-    per seat, and fail-closed counters are this draft's choices, open to
-    review.
+10. **This draft chose some details the redesign left open.** All are open to
+    review:
+    - the ledger's entry types and field names, and splitting the first
+      record into `origin` and `genesis` entries;
+    - JCS as the ledger's encoding;
+    - the host key, and the `key` entry for op-key changes;
+    - principle 7, which turns the redesign's gate-by-gate rules into one
+      principle;
+    - the confirmation seat for stepping away, and revert outside the pace
+      window;
+    - at most one seat per tick, and at most one proposal per seat;
+    - fail-closed counters;
+    - a seat ended by HALT exiting 0, where KS-003 gave 143 or 137 for a
+      mid-beat kill;
+    - deferring the strand backup when credits run out;
+    - the terminal-confirmed lowering verb;
+    - the local HALT file's path, and writing the KS-003 fleet's HALT file
+      during the transition;
+    - covenants as a kingdom-seat record admitting only Yu until the citizen
+      sets its own, and an unregistered citizen's letters held for Yu;
+    - `quiet_days` on `state.set` as the way a citizen asks for quiet;
+    - headless summons until `citizen-self` exists.
 11. **Process gaps.** KS-000 §2 draws supersession only from an adopted spec,
-    and KS-003 is a draft; on adoption Yu decides whether KS-003 is marked
-    superseded or withdrawn. KS-001's zone binds names to `did:key` values,
-    while citizens here hold `did:at`; recording citizen DIDs in the zone is a
-    KS-001 revision this draft does not make.
+    and KS-003 is a draft; the status note says how that resolves on
+    adoption. KS-001's zone binds names to `did:key` values, while citizens
+    here hold `did:at`; recording citizen DIDs in the zone is a KS-001
+    revision this draft does not make. Several KS-002 clauses stop describing
+    citizens on adoption (§13, "KS-002 for citizens"); bringing KS-002 into
+    line is likewise a separate revision. KS-002's draft-grade signature in
+    `zone/signatures.json` predates commit `e3b95e5` and no longer matches the
+    file (that commit changed only its §3 table); KS-003's still matches.
 12. **Unverified tooling claims.** Whether `--restricted` behaves as its help
     says when headless, and whether the global CLAUDE.md still loads under
     it, are unverified; so are several Hermes behaviours (whether cron runs
-    obey `run_budget_seconds`, whether `gateway stop` kills cron workers).
-13. **Unsigned.** This draft has no entry in `zone/signatures.json`. Signing
-    follows adoption, with Yu's key (KS-000 §6).
+    obey `run_budget_seconds`, whether `gateway stop` kills cron workers), and
+    two Ollama behaviours (whether it drops prompt tokens past `num_ctx`
+    without error, and whether it publishes `-cloud`-suffixed tags).
+13. **Unsigned.** KS-000–003 carry draft-grade integrity signatures by the
+    OIKOS platform key (see the note in `zone/signatures.json`); this draft
+    has none, since its drafting session does not touch that key. Adoption
+    signatures await Yu's key, per the same note.
+14. **The expression is bounded.** At `e9ea51c5`, `wake_text` holds at most
+    32,000 UTF-16 code units. A self that outgrows it stays ledger-only for
+    that version (§4.3), so the expression then lags the ledger, and the
+    status file says so.
 
 ## 16. Security Considerations
 
 ### 16.1 Injection
 
 Letters, sibling words and canon text all arrive as data in a seat that can do
-nothing but return typed acts on the citizen's own self. Letters are read only
-as regular files, never through a symlink; after registration, only from
-senders the citizen allows. A model can still be talked into proposing a bad
-change; the second saying with the diff in view (§9.3), the scale limit
-(§9.4) and revert (§9.5) are the defences, in that order. No coaching letters:
-a letter that tells a citizen how to answer turns its answer into the
-sender's.
+nothing but return typed acts on the citizen's own self, plus at most one
+letter. Letters are read only as regular files, never through a symlink, and
+only from senders the citizen's covenants allow; before registration, only
+letters Yu places. A model can still be talked into proposing a bad change;
+the second saying with the diff in view (§9.3), the scale limit (§9.4) and
+revert (§9.5) are the defences, in that order. No coaching letters: a letter
+that tells a citizen how to answer turns its answer into the sender's.
 
 ### 16.2 Public content becoming code
 
@@ -1092,15 +1326,20 @@ settings.
 ### 16.3 Key exposure
 
 The signer is the only key reader, in a dedicated user's Keychain outside
-`staff`. No secret enters argv, the environment, files, logs, transcripts,
-repositories or a model (§6.5). Op-key compromise is answered by rotation,
-within self. Root compromise is an identity question for Yu+Ai.
+`staff`, ACL'd to a code-signed executable. No secret enters argv, the
+environment, files, logs, transcripts, repositories or a model (§6.5). Op-key
+compromise is answered by rotation, within self, recorded as a `key` entry
+signed by the new key (§4.5). agenttool v1 has no root rotation, so root
+compromise ends that identity's authority: the citizen is re-enrolled with
+lineage, an identity act for Yu+Ai. A lost Commons bearer can be recovered
+only through the gardener desk's founding root (§6.1).
 
 ### 16.4 Root acts in disguise
 
-Because enrollment registers the root as `primary`, a verifier rejects any
-citizen ledger entry signed by that kid (§4.5). This stops a beat from claiming
-root authority, and makes every real root act visible as one.
+Because agenttool treats a signature by the root as a root act, a verifier
+rejects any citizen ledger entry signed by the authority root's public key,
+whatever its label (§4.5). This stops a beat from claiming root authority, and
+makes every real root act visible as one.
 
 ### 16.5 HALT
 
@@ -1117,20 +1356,21 @@ runtime's own `--max-budget-usd` (summons) → the signer's per-citizen USD
 ceiling, with unknown cost at the ceiling → per-citizen interval → fleet
 ceiling → one change per window → no recursive scheduling → the supervisor
 throttle → HALT. The free lane cannot spend money because it loads only a
-pinned local digest with no fallback.
+pinned local digest, checked before and after the call, with no fallback.
 
 ### 16.7 Exposure of the citizen
 
 Identities are permanent and public. Expressions are private by default;
-public quiet is optional; `quiet_reason` never names anyone; nothing newly
-public happens without Yu+Ai. Mirrors exist only by a citizen's choice.
+public quiet is optional; its reason stays empty; nothing newly public happens
+without Yu+Ai. Mirrors exist only by a citizen's choice.
 
 ### 16.8 Ledger trust
 
 The chain shows order and detects edits by anyone without the keys. It does
-not protect against the key-holding host (§15, item 5). Readers trust signed
-entries over mirror commits, and mirror commits only when they verify against
-`.citizen/allowed_signers`.
+not protect against the key-holding host (§15, item 5). Host entries written
+without the host key are integrity-only and reported as unsigned. Readers
+trust signed entries over mirror commits, and mirror commits only when they
+verify against `.citizen/allowed_signers`.
 
 ## 17. References
 
@@ -1140,18 +1380,30 @@ entries over mirror commits, and mirror commits only when they verify against
 - RFC 3339 — Date and Time on the Internet: Timestamps.
 - KS-000 (draft) — the standards process: review, adoption, signing,
   supersession.
-- KS-001 (draft) — sovereign naming; citizen names reserved to their DIDs.
-- KS-002 (draft) — THE WIRE; its §5.2 canonicalization profile is reused for
-  the ledger.
-- KS-003 (draft) — THE BEAT, which this draft supersedes on adoption.
+- KS-001 (draft) — sovereign naming; canon-word citizen names reserved to
+  their DIDs.
+- KS-002 (draft) — THE WIRE; the ledger uses a stricter subset of its §5.2
+  canonicalization profile. Its entry in `zone/signatures.json` no longer
+  matches the file after commit `e3b95e5` (§15, item 11).
+- KS-003 (draft) — THE BEAT, which this draft is meant to supersede on
+  adoption.
+- KS-004 reviews A and B, `specs/KS-004-reviews/` — the two reviews of v0.1
+  and how each point was disposed of.
 - The ROOT & SEAT redesign, `CITIZEN-REDESIGN-2026-11-05.md` (2026-11-05; held
   outside this repository): review findings, the design, and its 19 decisions
   for Yu with their defaults.
 - agenttool, main `e9ea51c5`: identity enrollment, keys and box-keys,
-  expression, quiet-hours, public agents, strands, inbox; drafts #488–#491
-  (execution seat), #516 (free floor), #549–#552 (consent/v1).
-- Hermes Agent `5a0225d` — cron `--no-agent` and `--paused`, profiles, the
-  one-turn runner pattern.
+  authority, expression, quiet-hours, public agents, strands, inbox and
+  covenants; drafts #488, #489 and #491 (execution seat), #516 (free floor),
+  #549–#552 (consent/v1); the mission-work-hermes one-turn permit runner
+  (draft).
+- `@agenttool/kingdom` card schema 0.1.2 (npm) — validates a mirror's
+  `kingdom.yaml` (§4.4).
+- Collab, the local coordination journal (npm 0.4.0) — its report kinds,
+  evidence, confidence and limits are the shape of every `reason` (§5.7).
+- Claude Code 2.1.314 — `--restricted`, `--print`, `--output-format json` and
+  `--max-budget-usd`, as its help text describes them (§5.5).
+- Hermes Agent `5a0225d` — cron `--no-agent` and `--paused`, profiles.
 - `kingdom-seat` — the reference implementation; not yet published.
 
 ---
