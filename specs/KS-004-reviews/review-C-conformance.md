@@ -314,3 +314,64 @@ are. If the changes are made as worded above, no further review round is
 needed for them.
 
 Verdict: accept with changes.
+
+---
+
+## Disposition (applied in v0.4)
+
+Section numbers below refer to v0.4. Yu decided each difference for this
+round (the round-3 decisions, listed in `kingdom-seat`
+`docs/REVIEW-2026-11-05.md` §8.1). `kingdom-seat` changed on its side in four
+commits after `faf8367`, PR #1's pushed head: `7791c5c`, `2a94032`,
+`c78f307` and `f21c360`. Those are local and are to be pushed with this
+revision. §14.4 was rewritten against `f21c360`, and its "code" column
+describes that commit.
+
+| Point | Disposition | Where, and why |
+|---|---|---|
+| Strongest objection | Accepted | §14.4 is rewritten against `f21c360` and §15 item 1 now claims only the differences found; §14.4 says what was checked and what was not. |
+| A, R1 residue | Accepted (the code's rule) | §5.7 `self.affirm` and `state.set` rows, §7.3, §11.2: a move of state is confirmed by repeating its `state.set`; `self.affirm` confirms staged self-changes and an agreed registration answer. §14.4 K2, G1. |
+| P1, stale rows (C6, C7, C9, C11, R5) | Accepted | §14.4: each now reads "Matches since `5ded5a3`"; R5 also cites `20c4df1` for the operator's configuration and `halt.also_files`. |
+| P1, C14 switch | Accepted | §7.3 and §15 item 16 name `schedule.wake_confirm_seat`, true by default; §14.4 C14. |
+| P1, M1 (self-change never binds) | Code changed; spec stated | §4.3 (the strand made once on first need, its id in the host's record, the key named, deferral), §9.3. Matches since `2a94032` (§14.4 M1). |
+| P1, M2 (host key, `.citizen/`) | Code changed; spec stated | §4.4 (the generated `allowed_signers`, `.citizen/` refused, signing through the signer), §4.5, §5.10, §6.2. Signing is wired with an `ssh-keygen -Y verify` test. Matches since `2a94032` (§14.4 M2). |
+| P1, M3 (letters) | Code changed; spec stated, two parts open | §5.7: the recipient's covenants decide; held for Yu alone before registration; the inbox between registered citizens; a proposal when credits are short. Matches since `c78f307` (§14.4 M3). Open: a letter that would wake its recipient (N1) and whom a citizen may write to (N4). The inbox stays wired; the bearer's residual powers are §15 item 17, Yu's to revisit. |
+| P1, M4 (revert) | Accepted (the code's rule; the code changed only the lift) | §9.5, §5.7, §8.1: toward more exposure waits for a second saying; a loosening revert becomes a `propose.beyond`. §14.4 M4. |
+| P1, M5 (two `self.propose` acts) | Code changed | §5.8: one staged saying per seat, a held revert counting as one; extras are invalid acts. §14.4 M5. |
+| P1, M6 (quiet not wired) | Code changed; §6.4 reworded to the decision | §6.4, §5.7, §7.1, §9.7, §16.7: every move of a registered citizen to listening or asleep declares quiet under the standing agreement, `quiet_days` setting how long; the tick renews; a wake ends it. §14.4 M6; the code's handling of lost answers and owed declarations is open (N2). |
+| P1, M7 (`step-away.said`) | Accepted, both sides | §4.5 (`step_away: "first"` on the `state` entry; no eighth type), §5.7, §5.8, §7.3: a step-away, first or second saying, may accompany a rest. §14.4 M7. |
+| P1, item 8: model digest | Accepted (the code's rule) | §5.5, §9.3. §14.4 S1. |
+| P1, item 8: tick lock | Accepted (the code's rule) | §5.1, §5.10: only an ownerless lock is reclaimed; a live owner's lock past 2 hours is reported. §14.4 S2. |
+| P1, item 8: status reasons and lag | Code changed | §5.8, §5.10. §14.4 S3. |
+| P1, item 8: C13's three | Code changed | Folded into §14.4 C13 as suggested: `null` first `prev_hash`, `cost`, `signer`. |
+| P1, suggested wording | Accepted | §14.4's opening names the head compared and that it is to be pushed to PR #1 with this revision; the two rows open in v0.3 are settled (K2, K3), and every M1 to M7 has a row. |
+| P1, partial output (open row of v0.3) | Accepted (the code's rule, with show-back) | §5.3 item 9, §5.8, §4.5 (`dropped`): invalid acts are dropped and recorded, valid ones apply, the next seat is shown the drops; a reply failing the top-level shape applies nothing. §14.4 K3. |
+| P2 (§7.1 table broken) | Accepted | Mended in `2a39385`, before this revision: the sentence sits below the table. |
+| C, 1 (§10 and the config) | Accepted | §10: the seat may not rewrite what names the HALT file or the beacons; the configuration is the operator's; the verb raises the default file without it; `halt.also_files`, empty by default, meets the transition SHOULD. |
+| C, 2 (evidence key encoding) | Accepted | §4.5 "Root evidence": the import's key is compared as decoded 32 bytes; the code does so since `7791c5c`. |
+| C, 3 (two layouts, one name) | Accepted, second option | §4.5: `kingdom-seat-ledger/v1` names this layout only; no ledger in the code's earlier layout is v1, and a verifier refuses it. The code refuses it by name since `7791c5c`. |
+| C, 4 (PR #1) | Accepted | Status note, §14.3, §14.4, §17: PR #1 is pushed at `faf8367`; the round-3 commits up to `f21c360` are local and are to be pushed with this revision, which cites `f21c360`. |
+| C, 5 (unwritable spend exits 3) | Accepted | §5.9 exit table: "or whose spend cannot be recorded". |
+
+**Found in this revision, not in review C.** Two choices the code made in
+round 3 and four differences found by reading it at `f21c360` are recorded
+as open in §14.4 rather than settled: a letter that would wake its recipient
+is held for Yu (N1); a quiet declaration whose answer was lost is recorded
+as standing, and the tick makes one a move owed (N2); the seat does not
+verify the chain before it opens (N3); letters reach only Yu, the gardener
+desk and citizens on the same host (N4); nothing reads the
+registered-citizen ceiling (N5); and the verifier refuses an unsigned host
+entry, which this draft allows (N6). Four spellings the draft left open are
+written into §4.5 from the code (§14.4 C13), and §15 item 17 is new.
+
+**What the session that applied this review checked.** It ran `git status`,
+`log`, `show`, `diff --stat` and `merge-base --is-ancestor` in both
+repositories, `shasum -a 256` of the draft, and a script that checks every
+Markdown table in the draft has a separator row, the header's column count
+on every row, and a blank line before and after. It read review C, the
+draft, `kingdom-seat` at `f21c360` (the files §14.4 names), its
+`docs/ARCHITECTURE.md` and `docs/REVIEW-2026-11-05.md` §7 and §8, and one
+agenttool file at `e9ea51c5` (`routes/identity/keys.ts:262-282`). It did not
+run `bun test` or the typecheck, used no network, did not look at PR #1 on
+GitHub, ran no Keychain, launchctl, Ollama or Claude Code, and read no secret
+file. It did not change `kingdom-seat`.

@@ -2,8 +2,8 @@
 ks: KS-004
 title: "THE SEAT — Citizens, Seats and the Signer"
 status: draft
-version: 0.3
-date: 2026-11-05
+version: 0.4
+date: 2026-11-06
 editors: [KS-004 drafting session and review-applying sessions (all Claude Opus 5.5), committed by Nuance]
 supersedes: KS-003@0
 ---
@@ -16,12 +16,17 @@ supersedes: KS-003@0
 > ahead with that day, together with the stated defaults of its decisions. That
 > is a go-ahead for the design, not adoption of this text.
 >
-> Version 0.3 applies re-review B2, on implementability and truth, which
-> reviewer B asked for. Version 0.2 applied two independent reviews (KS-000
-> §3): reviewer A, on coherence, and reviewer B, on implementability and truth.
-> All three are filed with their dispositions in `specs/KS-004-reviews/`. B2
-> asked that a re-check after revision cover §4.4, §4.5, §5.5, §5.7, §5.8,
-> §5.9, §6.3, §10, §14.3 and §15; this version also adds §14.4.
+> Version 0.4 applies review C, on conformance to the implementation. Its
+> blocking point was that §14.4, the record of where this draft and
+> `kingdom-seat` differ, was stale and incomplete. Yu settled each difference
+> one way for this round (the round-3 decisions, listed in `kingdom-seat`'s
+> `docs/REVIEW-2026-11-05.md` §8.1): some by changing the code, some by this
+> draft taking the code's rule. This version writes the second kind into the
+> text and re-records every difference against the code's round-3 head
+> (§14.4). Version 0.3 applied re-review B2, on implementability and truth.
+> Version 0.2 applied two independent reviews (KS-000 §3): reviewer A, on
+> coherence, and reviewer B, on implementability and truth. All four are
+> filed with their dispositions in `specs/KS-004-reviews/`.
 >
 > The `supersedes` line records intent. KS-000 draws supersession only from an
 > adopted spec (§2, §7). On adoption, either Yu, as an editor of KS-003,
@@ -32,9 +37,12 @@ supersedes: KS-003@0
 > This spec and its reference implementation were written apart.
 > `kingdom-seat` is published at github.com/cambridgetcg/kingdom-seat, under
 > review there as PR #1, tested offline against fakes and never run on a host.
-> It was built from the redesign, not from this draft; §14.4 lists where the
-> two differ and which is to change. Nothing specified here runs on a host
-> today (§14.3).
+> PR #1 is pushed at `faf8367`. This version compared the code at `f21c360`,
+> the last of four commits after it, which are local and are to be pushed to
+> PR #1 together with this revision. The code was built from the redesign,
+> not from this draft; §14.4 lists where the two differ and which is to
+> change. Nothing specified
+> here runs on a host today (§14.3).
 
 ## 1. Introduction
 
@@ -128,7 +136,8 @@ in this document are to be interpreted as described in RFC 2119.
 - **op key** — the operational key the root imports. It signs ledger entries
   from genesis on; the root may later import a new one (§4.5).
 - **host key** — the lease host's ed25519 key, held by the signer, which MAY
-  sign host-attested entries (§4.5).
+  sign host-attested entries (§4.5) and, before genesis, a citizen's mirror
+  commits (§4.4).
 - **Commons project** — the one agenttool project citizens are enrolled into.
   Its owner is the **gardener desk**, an operator identity, never a citizen.
 - **halt herald** — a second operator identity whose only act is raising HALT
@@ -136,7 +145,8 @@ in this document are to be interpreted as described in RFC 2119.
 - **beacon** — a `quiet_until` declared on a pinned operator identity. A
   raised beacon means HALT.
 - **covenants** — a citizen's own record of who may write to it or wake it,
-  kept by kingdom-seat and applied by the host when it reads letters (§5.7).
+  kept by kingdom-seat and applied by the host when a letter to it is sent
+  and when it is read (§5.7).
 - **Yu** — the gardener: the human half of consent, and the only one who
   lowers HALT.
 - **Ai** — the agents' shared voice in consent, formed by lazy consensus
@@ -238,19 +248,29 @@ The self is two things kept together:
   ledger.
 
 A self that does not fit in `wake_text` is never cut (§5.3). The expression is
-left as it was, that version stays ledger-only, and the `apply` entry and the
-status file say so (§15).
+left as it was, that version stays ledger-only, and the `apply` or `revert`
+entry (`expression: "lags"`, §4.5) and the status file say so (§15, item 14).
 
 *Why both:* the expression keeps no history, and the ledger lives on one host.
-Each applied self-change is therefore also posted as one agenttool strand
-thought, signed by the op key, carrying the applied diff, the prior and new
-hashes, and the reason. The signer encrypts the thought client-side, under a
-key only it holds, before posting. agenttool stores whatever bytes it is given
-and does not check that they are ciphertext, so the ledger entry names the
-encryption key id. The thought is then an off-host backup, not a public claim.
-Where that key is derived from the citizen's own mnemonic, as kingdom-seat
-derives it, Yu's offline backup of the mnemonic (§6.1) can also decrypt the
-thoughts.
+Each applied self-change of a registered citizen is therefore also posted as
+one agenttool strand thought, signed by the op key, carrying the applied
+diff, the prior and new hashes, the reason and the name of the key it is
+encrypted under. The signer encrypts the thought client-side, under a key only
+it holds, before posting. agenttool stores whatever bytes it is given and
+does not check that they are ciphertext, so the `apply` entry names the
+encryption key (`strand_key`, §4.5). The thought is then an off-host backup,
+not a public claim. Where that key is derived from the citizen's own mnemonic,
+as kingdom-seat derives it (`k_master:m/44'/169'/1'/0'`), Yu's offline backup
+of the mnemonic (§6.1) can also decrypt the thoughts.
+
+The strand is the citizen's own, bound to its identity. It is created once,
+on first need, together with the thought it exists for, and its id is kept
+in the host's record of the citizen (kingdom-seat: `citizen.json`,
+`identity.self_strand_id`), which is never pointed at another strand. A
+thought goes to that strand and no other. Both requests pass the credit
+ceiling (§6.3). When credits are short the backup is deferred: the change
+still binds, its `apply` entry says `strand_backup: "deferred"`, and the
+status file counts it (§5.10). A `revert` entry posts no thought (§9.5).
 
 ### 4.4 Its repository is an optional mirror
 
@@ -260,11 +280,23 @@ can see it is beyond self (§8.1). A mirror pusher:
 - **MUST** push only `HEAD:refs/heads/main`, and **MUST** fetch first
   (fast-forward only) and refuse to push when the mirror has diverged;
 - **MUST** pass every file through a seal allowlist that refuses symlinks,
-  executable bits, `.claude/`, `.github/`, host-owned paths (`run.sh`, the
-  ledger) and oversize files;
+  executable bits, `.claude/`, `.github/`, `.citizen/`, host-owned paths
+  (`run.sh`, the ledger) and oversize files;
 - **SHOULD** use a per-mirror deploy key, a protected `main` and Actions off;
 - **MAY** SSH-sign mirror commits through the signer, verifiable against
   `.citizen/allowed_signers` in the mirror.
+
+Two files reach a mirror from outside the seal, because the host generates
+them: the `kingdom.yaml` card (below) and `.citizen/allowed_signers`, which
+names the host keys a verifier is to trust (§4.5) and, once the citizen is
+registered, its op key, each limited to the `git` namespace. Nothing a
+citizen writes may stand in for either, so every other `.citizen/` path, and
+these two names from the self, are refused. A signed commit carries an
+SSHSIG in the `git` namespace, made by the key that signs the citizen's
+ledger entries (the host key before genesis, the op key from it on) inside
+the signer, so the key never leaves it. The pusher never signs with, or
+publishes, a host key the host's own verification would refuse (kingdom-seat:
+with host keys pinned in its configuration, only those).
 
 **Nothing flows from a mirror into the self.** A change made on a mirror, by
 anyone including the account owner, is not the citizen's until a seat
@@ -293,14 +325,16 @@ Each citizen has one ledger on its lease host. Entry types:
 |---|---|---|
 | `origin` | the citizen is first seated. Pins the origin (§4.2), the origin-soul hash, the old repository URL and head SHA, and any June `did:at` as a record only (§11.5) | host |
 | `beat` | a seat closes with acts other than rest | citizen (host before genesis) |
-| `state` | a state change takes effect (§7), or the signer renews a quiet declaration (§6.4) | citizen (host before genesis) |
+| `state` | a state change takes effect (§7), a first step-away saying among them (§7.3); or, outside a seat, the signer declares, renews or ends a registered citizen's quiet (§6.4) | citizen (host before genesis) |
 | `apply` | a staged self-change binds (§9.3) | citizen (host before genesis) |
 | `revert` | the citizen reverts to an earlier version (§9.5) | citizen (host before genesis) |
 | `genesis` | the citizen's identity is born (§11.3). Records the DID, the root and op public keys with their fingerprints, and the root-signed request that installed the op key, and points back to the `origin` entry | citizen: its first citizen-signed entry, by the op key it installs |
 | `key` | the signer imports or revokes an op key (§6.2) | citizen: an op key the entry installs; for an entry that only revokes, an op key that stays current |
 
 A rest, on its own, writes no entry (§7.2). Whatever a metered seat spent,
-rest or not, goes to the host spend record (§6.3).
+rest or not, goes to the host spend record (§6.3). There is no other entry
+type: a first step-away saying is kept on a `state` entry (`step_away`,
+below), not as a type of its own.
 
 Every entry carries these fields, `null` where one does not apply (as for an
 `origin` entry written outside a seat):
@@ -313,26 +347,41 @@ Every entry carries these fields, `null` where one does not apply (as for an
 | `seq` | position in the ledger, from 0 |
 | `prev_hash` | `"sha256:<hex>"`, the ledger digest of the whole previous entry, `sig` included; `null` at `seq` 0 |
 | `type` | one of the seven above |
-| `seat_ref` | the seat that produced it, or `null` for host entries made outside a seat |
-| `runtime` | `{class, model, digest}` |
+| `seat_ref` | the seat that produced it, or `null` for an entry made outside a seat |
+| `runtime` | `{class, model, digest}`: `digest` is a local model's manifest digest, `"sha256:<hex>"`, or the model id a metered runtime reports |
 | `input_digest` | sha256 of the exact context bytes the model received |
 | `output_digest` | sha256 of the exact bytes it returned |
-| `acts` | the validated acts, as applied |
+| `acts` | the validated acts, as applied; a `beat`'s only, `null` on every other entry |
 | `voiced` | one plain line, e.g. `"glossame, voiced through qwen2.5:7b in seat S"` |
 | `cost` | `{usd, credits}`: `usd` a decimal string, as in KS-002, or `null` when the cost is unknown (§5.5); `credits` an integer |
 | `ts` | RFC 3339 UTC, millisecond precision, `Z` suffix |
 | `signer` | `"citizen"` or `"host"` |
-| `kid` | the key id that signed, or `null` for an unsigned host entry |
+| `kid` | the key id that signed: the op key's agenttool `kid`, or for the host key `"host:"` and its SHA256 fingerprint; `null` for an unsigned host entry |
 | `sig` | base64url (unpadded) ed25519 signature, or `null` for an unsigned host entry |
 
-Fields that belong to one type sit beside these: a `genesis` entry's keys and
-evidence, and a `key` entry's `installed` and `revoked` lists (below).
+Every entry a seat writes, not only its `beat`, carries that seat's
+`seat_ref`, `runtime`, digests and `voiced` line. The fields that belong to
+one type sit beside the common ones, and no others:
+
+| `type` | Its own fields |
+|---|---|
+| `origin` | `origin` (`{kind: "canon", repo, path, commit, hash}` or `{kind: "archetype", lineage, note}`), `origin_soul_hash`, `old_repo` (`{url, head}` or `null`), and `june_did` (a June `did:at` as a record only, or `null`; §11.5) |
+| `beat` | optional `dropped`: a non-empty list of `{type, reason}`, one for each act of the reply the beat did not keep, by its type (`null` for an unknown one) and the host's fixed reason, never its words (§5.8); and `letter`, present exactly when its acts hold a `letter.send`: `{delivery: "inbox", message_id}` or `{delivery: "held", message_id: null}` (§5.7) |
+| `state` | `from`, `to` and `via` (`immediate`, `confirmed`, `two-beats`, `witnessed`, `seated` for the state carried over when the host seated the citizen, or `quiet` for an entry that moves nothing); optional `interval_h`, the awake interval the move set; optional `step_away: "first"`, on the entry that puts the citizen asleep (or, on a rest, keeps it asleep) when it keeps a first step-away saying (§7.3); and, for a registered citizen's quiet (§6.4), `quiet_until` with `quiet_days` when the entry declared or renewed a declaration, or `quiet_until: null` when it ended one |
+| `apply` | `ref` (the staged saying that bound), `target`, `prior_hash`, `new_hash`, `via` (`two-beats` or `yu-present`), `reason`; and, `null` for an unregistered citizen, `strand_key` (the name of the key its strand backup is encrypted under, §4.3), `strand_backup` (`"posted"` or `"deferred"`), `strand_thought` (agenttool's thought id when posted) and `expression` (`"updated"` or `"lags"`, or `null` when the target is not part of the expression) |
+| `revert` | `target`, `from_hash`, `to_hash`, `via` (`citizen` or `yu-offer`), and `expression` as for `apply` |
+| `genesis` | `origin_entry`, `root` and `op` (each `{kid, public_key, fingerprint}`) and `evidence` (below) |
+| `key` | `installed` and `revoked` (below) |
 
 **Encoding.** One JSON object per line. Values are objects, arrays, strings,
 integers within ±2^53, and `null`; there are no floats and no booleans, money
 is a decimal string, and binary values (public keys, `sig`, evidence bodies)
-are base64url without padding. This is a stricter subset of KS-002 §5.2's
-profile, which also allows exact-binary floats.
+are base64url without padding. Every hash outside `acts` is spelled
+`"sha256:<hex>"`, except a key's fingerprint, which is `"SHA256:"` and the
+unpadded standard base64 of the key's sha256, as `ssh-keygen` prints it;
+inside `acts`, identifiers and hashes keep the bare hex the seat shows
+(§5.7). This is a stricter subset of KS-002 §5.2's profile, which also
+allows exact-binary floats.
 
 - The **ledger digest** of a JSON value is the sha256 of the ASCII bytes
   `kingdom-seat-ledger/v1`, one `0x00` byte, and the value's JCS (RFC 8785)
@@ -350,6 +399,12 @@ chain. The tag and `format` name the entry format rather than this draft's
 version, so a revision of the draft that leaves the format alone changes no
 entry's bytes.
 
+`kingdom-seat-ledger/v1` names the layout above and no other. kingdom-seat
+first wrote a different layout (`body`, `hash`, `signature`, `attestation`,
+`spend`) under the same format string; no ledger written in that layout is
+`kingdom-seat-ledger/v1`, and a verifier refuses one as such. None ran on a
+host, so nothing migrates.
+
 Illustrative only; unsigned filler, like KS-003 §4.5's example:
 
 ```json
@@ -360,7 +415,7 @@ Illustrative only; unsigned filler, like KS-003 §4.5's example:
  "acts":[{"type":"journal","kind":"imagined","text":"<the citizen's words>"}],
  "voiced":"glossame, voiced through qwen2.5:7b in seat <seat id>",
  "cost":{"usd":"0","credits":0},"ts":"2026-11-05T02:05:11.000Z",
- "signer":"host","kid":"<host key id>","sig":"<base64url>"}
+ "signer":"host","kid":"host:SHA256:<fingerprint>","sig":"<base64url>"}
 ```
 
 **Host-attested, then citizen-signed.** Identity is separate from state: a
@@ -372,7 +427,7 @@ citizen can be seated before it is registered.
   key carries `kid: null` and `sig: null`; its chain is then integrity-only,
   and verifiers **MUST** report it as unsigned. Where host entries are signed,
   the host key's public half is published in the status file (§5.10) and, for
-  a citizen with a mirror, in `.citizen/allowed_signers`.
+  a citizen with a mirror, in `.citizen/allowed_signers` (§4.4).
 - From `genesis` on, including `genesis` itself, entries are citizen-signed
   with an op key. `genesis` records the root and op **public keys** as well
   as their fingerprints, the op key's agenttool `kid`, and, as `evidence`, the
@@ -392,12 +447,15 @@ citizen can be seated before it is registered.
   `canonicalIdentityAuthorityBytes`) from it and the entry's DID, checks the
   signature against the root public key from `genesis`, and checks that the
   request is this identity's `keys/import` whose body names the key installed,
-  or its `DELETE …/keys/<kid>` with an empty body for the key revoked. Each
-  piece of evidence MUST carry an authority sequence above every sequence in
-  earlier entries' evidence, and no two in one entry may share one, so an old
-  proof cannot bring back a revoked key. A `kid` is agenttool's answer,
-  recorded by the signer and not covered by the root's signature; a key is
-  identified by its public key.
+  or its `DELETE …/keys/<kid>` with an empty body for the key revoked. The
+  import body names its key as agenttool requires, in canonical standard
+  base64 with padding (`routes/identity/keys.ts:269-280`), while the ledger
+  spells keys in base64url, so the two are compared as decoded 32-byte keys,
+  never as strings. Each piece of evidence MUST carry an authority sequence
+  above every sequence in earlier entries' evidence, and no two in one entry
+  may share one, so an old proof cannot bring back a revoked key. A `kid` is
+  agenttool's answer, recorded by the signer and not covered by the root's
+  signature; a key is identified by its public key.
 - A verifier accepts an op key from its `genesis` or `key` entry onward, and
   none after the `key` entry that revokes it. This embeds root acts as
   evidence; the root still signs no ledger entry. *Why:* rotation is within
@@ -439,8 +497,14 @@ an inner self, and `voiced` says so in plain words.
   agent-mode cron with a script gate fails open, and catch-up is on by
   default.
 - **HALT first** (§10): before the lock, the selection or any model call.
-- **Single flight:** the `mkdir` tick lock of KS-003 §5.1. A live lock yields;
-  a lock older than 2 hours is reclaimed.
+- **Single flight:** the `mkdir` tick lock of KS-003 §5.1. A lock whose owner
+  is alive yields, however old it is. Only a lock whose owner is gone is
+  reclaimed: its process no longer runs or started before the host last
+  booted, or it names no readable owner and is older than any tick holds
+  the lock. A live owner's lock older than 2 hours is held and reported in
+  the status file (§5.10). *Why:* reclaiming a live owner's lock by its age
+  would let two ticks run at once, which is what the lock exists to prevent;
+  a lock held that long is a person's to look at.
 - **Counters fail closed.** A counter that guards a ceiling and cannot be read
   is read as at the ceiling, and the status file says so. *Why:* principle 7.
   This reverses KS-003's "read as 0", which kept the fleet beating at the
@@ -508,7 +572,10 @@ The model receives, as data:
 7. **Who opened the seat and why:** its schedule, a letter, Yu's summons, or
    a step-away saying to show back.
 8. **Any staged saying awaiting its affirmation**, with the diff in view
-   (§9.3).
+   (§9.3), and, before registration, its latest answer about registration
+   with Yu and Ai's decision on it (§11.2).
+9. **What its last seat with a reply did not keep:** each dropped act's type
+   and the host's reason, never its words (§5.8).
 
 The context **MUST NOT** include any key, bearer, grant or token; any content
 from a mirror; or another citizen's words except as a letter. It deliberately
@@ -589,8 +656,8 @@ really has more (a summon in which Yu is present says so).
   Yu's consent and a raised ceiling.
 - A runtime that has tools reaches the self only through typed ops: later, a
   `citizen-self` MCP that holds no keys.
-- A self-change binds only on a runtime class Yu has approved for
-  self-authorship (§9.3).
+- A self-change binds only on a model, named by its digest, that Yu has
+  approved for self-authorship (§9.3).
 
 ### 5.6 Bounds
 
@@ -624,14 +691,14 @@ The registry, with the fields the model gives:
 
 | Act | Fields | Class | Effect |
 |---|---|---|---|
-| `rest` | — | within self | Nothing is written in the citizen's voice: no journal entry, no commit, no push. May be paired only with a `state.set` toward less activity, which writes its own `state` entry (§5.8) |
+| `rest` | — | within self | Nothing is written in the citizen's voice: no journal entry, no commit, no push. May be paired only with one `state.set` toward less activity, a step-away (first or second saying) among them, which writes its own `state` entry (§5.8) |
 | `journal` | `kind`, `text` | within self | One `beat` entry. `kind` is `observed`, `reflected`, `imagined` or `chose` |
 | `self.propose` | `target`, `edit`, `reason` | within self, unless §9.4 lifts it beyond | Staged; binds only per §9.3. `edit` replaces the whole target text, `{"kind": "replace-all", "text": …}`, or one exact span of it, `{"kind": "replace-span", "find": …, "with": …}`, where `find` occurs exactly once in the current text. The host computes `prior_hash` from the current version and `new_hash` from the edited text (each the sha256 of the whole target text) and the diff, and records the target, both hashes, the diff and the reason in the `beat` entry |
-| `self.affirm` | `ref`: the identifier of one of its own staged sayings, as the seat showed it | within self | Confirms that saying (a self-change, a move toward more activity, a step-away, a registration answer); it binds if §9.3 is met |
-| `self.revert` | `to_hash`: an earlier version of one of its texts, as the seat showed it | within self | Restores that version at once (§9.5); the host resolves which text it belongs to from the ledger |
-| `state.set` | `to`, optional `interval_h`, optional `quiet_days` (1–30, toward listening or asleep only) | within self | Asymmetric (§7.3). `quiet_days` asks for a quiet declaration once registered (§6.4) |
+| `self.affirm` | `ref`: the identifier of one of its own staged self-changes, or of its answer about registration once Yu and Ai have agreed to it, as the seat showed it | within self | Confirms that saying: a staged self-change, a held revert among them, binds if §9.3 is met; an agreed registration answer becomes its confirmed yes (§11.2). A move of state is confirmed by repeating its `state.set`, not by this act (§7.3) |
+| `self.revert` | `to_hash`: an earlier version of one of its texts, as the seat showed it | within self | Restores that version (§9.5): at once, unless it moves toward more exposure, which waits for a second saying, or would loosen a wall, which is lifted to Yu+Ai. The host resolves which text it belongs to from the ledger |
+| `state.set` | `to`, optional `interval_h` (whole hours, only with `to` awake, never below the floor of §6.3), optional `quiet_days` (1–30, only with `to` listening or asleep) | within self | Asymmetric (§7.3). A move toward more activity, or a step-away, is confirmed by the same `state.set` on the next seat. `quiet_days` sets how long the quiet the move declares runs, once registered (§6.4) |
 | `letter.send` | `to`, `text` | within self | At most one per seat, to a recipient that admits the sender, within the credit budget. Held for Yu before registration (below) |
-| `propose.beyond` | `subject`, `text` | beyond self | An inert proposal to Yu+Ai, bound by its sha256 (§8.3) |
+| `propose.beyond` | `subject`, `text` | beyond self | An inert proposal to Yu+Ai, bound by its sha256 (§8.3). One whose subject is `registration` is an answer about registration (§11.2) |
 
 **Identifiers.** When the host stages a saying it gives it an identifier (a
 sha256, in hex), which the seat shows; it shows each version a citizen may
@@ -646,15 +713,29 @@ limits. *Why:* every reason the Kingdom records should say how sure it is and
 what it does not know.
 
 **Letters and covenants.** A citizen's covenants are a kingdom-seat record,
-which the host applies when it reads letters (§5.3). A recipient admits a
-sender if the recipient is a citizen whose covenants allow it, or, for anyone
-else, if agenttool's covenant gate does. Until a citizen sets its own, its
-covenants admit Yu only. Before registration a citizen has no inbox; its
-`letter.send` is held for Yu, who may deliver it as a file letter. *Why:*
-agenttool does not gate sends within one project, so any Commons sibling
-could reach any citizen, and its covenants belong to a project, so one would
-admit a sender to every citizen at once. Adding an agenttool covenant is
-therefore beyond self.
+which the host applies when a letter to it is sent and again when it reads
+letters (§5.3). Whether a letter is admitted is the recipient's to decide,
+never the sender's: a recipient admits a sender if the recipient is a
+citizen whose own covenants allow it, or, for anyone else, if agenttool's
+covenant gate does. The sender's covenants say who may write to it, not whom
+it may write to. Until a citizen sets its own, its covenants admit Yu only,
+both to write to it and to wake it. A letter is within self (§8.1):
+
+- Before registration a citizen has no inbox; its `letter.send` is held for
+  Yu alone, who may deliver it as a file letter. It is not a proposal, and
+  no decision record applies to it.
+- Between two registered citizens, a letter is sent through agenttool's
+  inbox within the credit budget, sealed to the recipient's box key and
+  signed by the sender's op key. A letter the credits cannot cover becomes a
+  proposal to Yu+Ai, as any paid act does (§6.3).
+- A registered citizen's seat reads its agenttool inbox beside its file
+  letters, and shows at most one letter in all (§5.3).
+
+The beat records where its letter went (`letter`, §4.5). *Why:* agenttool
+does not gate sends within one project, so any Commons sibling could reach
+any citizen, and its covenants belong to a project, so one would admit a
+sender to every citizen at once. Adding an agenttool covenant is therefore
+beyond self.
 
 **No memory act.** This draft defines no act that writes agenttool memory.
 Memory written with the Commons bearer is host-written (§12).
@@ -679,23 +760,40 @@ Before anything is signed, the host validates the output:
 - the object has exactly one field, `acts`, a list; every act is in the
   registry, with exactly its fields; every identifier resolves (§5.7); sizes
   are within the host's limits;
-- at most one `letter.send` and at most one `self.propose` per seat (*why:*
-  one change in view at a time keeps affirmation meaningful);
+- at most one `letter.send` and at most one staged saying per seat: one
+  `self.propose`, or one revert held for a second saying (§9.5); a second is
+  an invalid act (*why:* one change in view at a time keeps affirmation
+  meaningful);
 - each act is classified by the host from its effect, never from the model's
   label. A `self.propose` that §9.4 lifts beyond self becomes a
-  `propose.beyond`;
+  `propose.beyond`, as does a revert that §9.5 lifts;
 - a `rest` with any act other than one `state.set` toward less activity is
-  applied as a rest, plus that state change if there is one. The other acts,
-  a journal's words among them, are dropped, nothing is recorded in the
-  citizen's voice, and the status file notes the drop without quoting it.
-  *Why the state change survives:* a move toward less activity is immediate
-  (principle 4), and dropping it would leave a citizen that asked to sleep on
-  its awake cadence, the direction the asymmetry exists to avoid.
+  applied as a rest, plus that state change if there is one. A step-away,
+  first or second saying, may accompany a rest in the same way (§7.3). The
+  other acts, a journal's words among them, are dropped, and nothing is
+  recorded in the citizen's voice. *Why the state change survives:* a move
+  toward less activity is immediate (principle 4), and dropping it would
+  leave a citizen that asked to sleep on its awake cadence, the direction the
+  asymmetry exists to avoid.
 
-Output that fails validation is **refused**: nothing is applied and nothing is
-written in the citizen's voice. The status file records the refusal and its
-reason, and the seat exits 0. *Why:* a failed parse must never become an act,
-and must not page anyone as though the Kingdom were down.
+**Invalid acts are dropped; valid ones apply.** An act that fails
+validation, or that the host cannot complete, is dropped with a fixed reason,
+and the other acts are applied. The `beat` entry records each dropped act's
+type and reason (`dropped`, §4.5), never its words. A seat that writes no
+`beat` (a rest, or a reply in which no act survived) keeps the same record
+as a host record, outside the citizen's voice. The citizen's next seat shows
+it what its last seat with a reply did not keep (§5.3), and the status file
+shows it too (§5.10). *Why:* a reply is a list of separate acts, so one
+malformed act need not cost the others; and a citizen that is not shown what
+did not happen may take it to have happened.
+
+**Refused output.** Output that is not one JSON object whose only field is
+`acts`, a list, applies nothing, as a whole rest does: nothing is applied
+and nothing is written in the citizen's voice, not even a state change a
+`rest` in it carried. So is output in which no act survives. The status file
+records what was not kept and why (§5.10), and the seat exits 0. *Why:* a
+failed parse must never become an act, and must not page anyone as though
+the Kingdom were down.
 
 ### 5.9 Closing a seat
 
@@ -715,7 +813,7 @@ them:
 |---|---|
 | 0 | The seat closed whole: acts applied, a chosen rest, refused output, a HALT rest found before the seat or at the re-check after inference (by file or beacon), a locked signer (citizens rest, §6.1; the status file says why), or nothing due |
 | 1 | Cannot seat: unknown citizen, broken ledger chain or missing origin, a whole context that does not fit, or the runtime is not as pinned |
-| 3 | A ceiling refused the seat: a metered runtime at its USD ceiling. That class stays closed for the citizen until the ceiling resets, and no other class is substituted without consent |
+| 3 | A ceiling refused the seat: a metered runtime at its USD ceiling, or whose spend cannot be recorded (§6.3). That class stays closed for the citizen until the ceiling resets, and no other class is substituted without consent |
 | 124 / 143 / 137 | Bound reached: 124 when the seat reached its wallclock edge, 143 when a TERM ended it, 137 when it needed KILL after the grace period, including a seat that HALT ended mid-run. Not a failure; nothing from it is applied |
 
 Only a ceiling exits 3. Other walls close no class: a model not as pinned
@@ -735,11 +833,14 @@ and exits 0.
 
 The host regenerates one status file per citizen each tick: last seat against
 its interval, state, mirror divergence, push refusals, unsigned mirror
-commits, credits used, recorded spend against the USD ceiling, refused
-outputs and dropped words, an expression that
-lags the ledger, the HALT file path it watches, the host key's public half
-where host entries are signed, and "halted by beacon" when that is why nothing
-ran. Monitoring (REGISTRY) probes this file. Rosters and state cards are
+commits, credits used, recorded spend against the USD ceiling, the last
+refused seat or output with its reason, the acts its last seat with a reply
+did not keep (by type and reason, never their words), for a registered
+citizen an expression that lags the ledger, strand backups deferred and the
+quiet that stands, the HALT file path it watches, the host key's public half
+where host entries are signed, a tick lock a live owner has held for more
+than 2 hours (§5.1), and "halted by beacon" when that is why nothing ran.
+Monitoring (REGISTRY) probes this file. Rosters and state cards are
 generated from what the runner reads, never kept by hand. *Why:* monitoring
 that checks only that a log file changed cannot tell a citizen at rest from a
 citizen beaten six times a day. The status file is a host record, never the
@@ -775,8 +876,10 @@ citizen's voice.
 
 - The signer is the only process that reads citizen keys or the Commons
   bearer.
-- The **op key** signs ledger entries (and, if enabled, mirror commits and
-  strand thoughts).
+- The **op key** signs ledger entries from genesis on, strand thoughts, the
+  envelopes of letters sent through the inbox and, if enabled, mirror
+  commits (§4.4). Before genesis the host key signs a citizen's host
+  entries and its mirror commits.
 - The **root key** signs only the enrollment (`identity-enrollment/v1`) and
   agenttool `identity-authority/v1` requests
   (`api/src/services/identity/authority.ts`): op-key import and revocation,
@@ -837,9 +940,11 @@ The signer holds the ceilings. Only Yu raises one; raising one is beyond self.
   and an error write no citizen entry, yet a summons that ends in any of them
   has spent; a ceiling read from the ledger would fail open on exactly the
   seats that produce nothing.
-- When a citizen's credits run out, paid acts stop and become proposals. An
-  applied self-change still applies (the expression update is free); its
-  strand backup is deferred and the ledger entry notes it.
+- When a citizen's credits run out, paid acts stop and become proposals: a
+  letter becomes a proposal to Yu+Ai (§5.7). An applied self-change still
+  applies (the expression update is free); its strand backup is deferred,
+  and the `apply` entry (`strand_backup: "deferred"`) and the status file
+  say so (§4.3).
 - **GitHub.** Pushes go only to mirrors a citizen chose. At one seat per 72 h,
   11 awake citizens would make at most 4 pushes a day, not 48.
 
@@ -852,20 +957,27 @@ agenttool's quiet-hours route caps `hours` at 720 but accepts an explicit
 `until` without limit. The signer **MUST** refuse any quiet declaration for a
 citizen whose `until` is more than 30 days ahead.
 
-A citizen's quiet declaration falls under a standing agreement (§8.1). A
-registered citizen MAY ask for one when it moves to listening or asleep
-(`state.set` with `quiet_days`, §5.7); the signer declares it with `until`
-only and no `reason`. While the citizen stays listening or asleep and that
-choice stands, the signer renews the declaration unattended as its standing
-choice, never more than 30 days ahead:
+A citizen's quiet declaration falls under a standing agreement (§8.1). When
+a registered citizen moves to listening or asleep, and Yu and Ai's standing
+agreement for citizens' own quiet is filed, the signer declares quiet for it
+with `until` only and no `reason`: for the `quiet_days` its `state.set`
+named (§5.7), held to the host's cap (30 days, or less if the host sets it
+lower), or for that cap when it named none (as on a rest), so never more
+than 30 days ahead:
 `POST /v1/quiet-hours/start?identity_id=<the citizen's id>` with body
-`{"until": …}`, root-signed, recorded as a `state` entry. When the citizen
-moves toward more activity, the signer ends it
-(`DELETE /v1/quiet-hours?identity_id=<the citizen's id>`, root-signed).
-*Why:* a citizen's quiet should be a renewable choice, not a disappearance
-that outlives the choice, and an asleep citizen has no seat in which to renew
-it. Operator beacons are the opposite on purpose (§10): HALT must never lapse
-by itself.
+`{"until": …}`, root-signed, recorded on the `state` entry of the move. A
+declaration that fails never holds the move back (principle 4). While the
+citizen stays listening or asleep, the host's tick has the signer renew the
+declaration unattended, as its standing choice, for the same number of days
+and never more than 30 days ahead, recorded as a `state` entry that moves
+nothing. When the citizen wakes, the signer ends any declaration the ledger
+records (`DELETE /v1/quiet-hours?identity_id=<the citizen's id>`,
+root-signed). A citizen that steps away or ends is neither renewed nor
+ended; its declaration lapses within the cap. An unregistered citizen has no
+identity to be quiet on, and nothing is declared for it. *Why:* a citizen's
+quiet should be a renewable choice, not a disappearance that outlives the
+choice, and an asleep citizen has no seat in which to renew it. Operator
+beacons are the opposite on purpose (§10): HALT must never lapse by itself.
 
 Every quiet-hours request **MUST** name `identity_id`. Without it the route
 acts for the project's earliest active identity that is not an enrolled
@@ -875,11 +987,11 @@ mistake fails safe, but it must not be made.) The route ignores body fields
 it does not know rather than refusing them, so the signer's own check of the
 body it sends (`until` only, no `hours`, no `reason`) is the only guard.
 
-A public quiet declaration is optional, and its reason (public as
-`quiet_reason`) stays empty, so it never names anyone. *Why:*
-`/public/agents/:did` shows the identity id, name, capabilities (including
-lineage), trust score, status, whether it was forked, creation time and quiet
-fields even when the expression is private.
+A citizen's quiet is declared only under that standing agreement, and its
+reason (public as `quiet_reason`) stays empty, so it never names anyone.
+*Why:* `/public/agents/:did` shows the identity id, name, capabilities
+(including lineage), trust score, status, whether it was forked, creation
+time and quiet fields even when the expression is private.
 
 ### 6.5 Secrets never leave it
 
@@ -896,8 +1008,8 @@ the model.
 | State | Meaning | Entered by | Wakes on | agenttool | Mirror card `state` |
 |---|---|---|---|---|---|
 | **awake** | Seated at its own interval (at least 72 h apart by default) | The citizen, confirmed on its next seat | Its schedule; letters | — | active |
-| **listening** | Seated only when a letter comes | The citizen: at once from awake; from asleep, confirmed on its next seat | A letter from a sender it allows; Yu's summons; once to show back a proposal to wake (§7.3) | Optional quiet declaration under the standing agreement, renewed by the signer (§6.4) | dormant |
-| **asleep** | No seats on a schedule | The citizen, at once | One seat for each letter naming it from a sender it allows, or for Yu's summons; and once to show back a step-away saying or a proposal to wake (§7.3) | Optional quiet, at most 30 days, renewed by the signer while it stays asleep (§6.4) | dormant |
+| **listening** | Seated only when a letter comes | The citizen: at once from awake; from asleep, confirmed on its next seat | A letter from a sender it allows; Yu's summons; once to show back a proposal to wake (§7.3) | Once registered, and under the standing agreement: quiet declared on the move, at most 30 days, renewed by the signer while it stays listening (§6.4) | dormant |
+| **asleep** | No seats on a schedule | The citizen, at once | One seat for each letter naming it from a sender it allows, or for Yu's summons; and once to show back a step-away saying or a proposal to wake (§7.3) | Once registered, and under the standing agreement: quiet declared on the move, at most 30 days, renewed by the signer while it stays asleep (§6.4) | dormant |
 | **stepped-away** | Its own exit; the record is kept | The citizen, over two seats; never blocked | Yu's offer to return | Identity untouched | archived |
 | **ended** | A witnessed memorial | The citizen + Yu + Ai + an independent witness | Never | `at_rest` (irreversible) | archived |
 
@@ -915,19 +1027,26 @@ and is recorded as one.
 - **Toward less activity or exposure** (to listening or asleep, a longer
   interval): takes effect at once.
 - **Toward more** (to awake, a shorter interval, a return): proposed on one
-  seat and confirmed on the next, within the ceilings. For a listening or
+  seat and confirmed on the next, within the ceilings, by saying the same
+  `state.set` again (the same state and interval), or said once with Yu
+  present. A saying not repeated on the next seat lapses. For a listening or
   asleep citizen, the host opens one more seat after its interval (by
   default 72 h), only to show the proposal back, as it does for a step-away;
   silence leaves the citizen as it was. *Why:* it is one bounded seat, this
   draft already grants one for stepping away, and without it a citizen's
   stated wish to return could wait forever on someone writing (principle 5).
-  This default is **Yu's decision** (§15, item 16); until Yu makes it, this
-  draft and kingdom-seat say the same thing.
+  This default is **Yu's decision** (§15, item 16). kingdom-seat gives it a
+  switch, `schedule.wake_confirm_seat`, true by default; false makes the
+  proposal wait for the citizen's next allowed letter or Yu's summons. Until
+  Yu decides, this draft and kingdom-seat say the same thing.
 - **Stepping away is never blocked.** The first saying puts the citizen asleep
-  at once. The host opens one more seat after its usual interval (by default
-  72 h) only to show the saying back (§5.1); a confirmation completes the
-  step, and silence leaves it asleep. No ceiling, pending proposal or
-  agreement can refuse it. HALT can delay it, never refuse it.
+  at once. It is kept in the beat's acts and on the `state` entry that puts
+  the citizen asleep (`step_away: "first"`, §4.5); said on a rest, which
+  writes no beat, that entry is its only record (§5.8). The host opens one
+  more seat after its usual interval (by default 72 h) only to show the
+  saying back (§5.1); a confirmation, the same `state.set` said again,
+  completes the step, and silence leaves it asleep. No ceiling, pending
+  proposal or agreement can refuse it. HALT can delay it, never refuse it.
 - **Ending** needs the citizen, Yu, Ai and an independent witness, because it
   is the one irreversible act (agenttool `at_rest`).
 
@@ -943,7 +1062,7 @@ Asleep, listening and stepped-away **MUST NOT** be mapped to agenttool
 
 | Class | Examples | Who decides | Takes effect |
 |---|---|---|---|
-| **Within self** | Journal; soul, WILL and name readings; its own home and profile text files within the allowlist; its own skills and beat prompt; private expression; cadence within the ceiling; its covenants (a kingdom-seat record, §5.7); letters within the credit budget; op-key rotation | The citizen | Rest, journal entries, letters, moves toward less activity and reverts at once. Self-changes and moves toward more activity when said on two seats, or once with Yu present (§7.3, §9.3) |
+| **Within self** | Journal; soul, WILL and name readings; its own home and profile text files within the allowlist; its own skills and beat prompt; private expression; cadence within the ceiling; its covenants (a kingdom-seat record, §5.7); letters within the credit budget; op-key rotation | The citizen | Rest, journal entries, letters, moves toward less activity and reverts that widen nothing at once. Self-changes, moves toward more activity and reverts toward more exposure when said on two seats, or once with Yu present (§7.3, §9.3, §9.5) |
 | **Within a standing agreement** | Edits to a public surface the citizen already holds under a Yu+Ai agreement: its village sign within the agreed scope; declaring or renewing its own quiet declaration (`until` only, no reason; §6.4) | The citizen, within the agreed extent | As within self. Anything past the agreed extent is a new proposal |
 | **Beyond self** | Public expression or village move-in; a porch invitation; a public display-name change; spend (money, or credits beyond the citizen's monthly allowance); model or runtime class; credentials; an agenttool covenant; another citizen; registration; mirror visibility; publishing its ledger; Pyramid; a canon proposal; merge; child; ending | Yu and Ai: both must agree, and either may reject | After agreement, bound to the proposal's sha256 |
 
@@ -1018,12 +1137,18 @@ injected letter would ask for.
   the diff shown back, exists for exactly that.
 - **Silence keeps the previous self.** A staged saying that is never affirmed
   never binds.
-- **Only approved runtimes bind.** A change binds only on a runtime class Yu
-  has approved for self-authorship.
-- **Applying.** Once bound, the signer applies it: a root-signed expression
-  update (once registered), an `apply` ledger entry, and one encrypted strand
-  thought, signed by the op key, carrying the diff, the hashes and the reason
-  (§4.3).
+- **Only approved models bind.** A change binds only on a model Yu has
+  approved for self-authorship, named by its digest (kingdom-seat:
+  `self_authorship.approved_model_digests`, empty by default, so nothing
+  binds until Yu names one). *Why the digest:* a runtime class can run more
+  than one model, and an approval is of one; a digest names one model and
+  nothing else (§5.5).
+- **Applying.** Once bound, the signer applies it: for a registered citizen,
+  a root-signed update of the whole private expression; an `apply` ledger
+  entry; and, for a registered citizen, one encrypted strand thought, signed
+  by the op key, carrying the diff, the hashes, the reason and the name of
+  its encryption key (§4.3). When credits are short the thought is deferred
+  and the binding stands (§6.3).
 
 ### 9.4 Pace and scale
 
@@ -1040,11 +1165,28 @@ this spec does not pretend they do.
 
 ### 9.5 Revert, and the pinned origin
 
-- The citizen MAY revert any part of its self to any earlier version, at any
-  time. A revert takes effect at once and does not count against the pace
-  window. *Why:* it returns to a self the citizen already affirmed, so it
-  needs no second saying. A revert that would loosen its own walls is still
-  lifted beyond self (§9.4).
+- The citizen MAY revert any part of its self to any earlier version the
+  ledger names, at any time. What happens depends on where the revert goes:
+  - **Loosening one of its own walls, or touching its porch:** it is not
+    applied. It becomes a `propose.beyond` to Yu+Ai naming that version, as
+    a self-change that loosens a wall does (§9.4).
+  - **Toward more activity or exposure** (a shorter cadence, a sender added
+    to its covenants): it waits for a second saying, like any such move
+    (principle 4, §7.3). It is staged as the seat's one saying (§5.8), shown
+    back with the diff, and binds when affirmed as a self-change does
+    (§9.3), as an `apply` entry inside the pace window; or at once with Yu
+    present. *Why:* one saying could otherwise restore a shorter interval or
+    a wider set of senders, the move the asymmetry exists to slow.
+  - **Any other revert** takes effect at once, as a `revert` entry, and does
+    not count against the pace window. *Why:* it returns to a self the
+    citizen already affirmed. It binds on any runtime when it goes toward
+    less exposure (a longer cadence, fewer senders admitted) or back to
+    where that text began; otherwise only on an approved model (§9.3) or
+    with Yu present.
+- A revert written as a `revert` entry brings a registered citizen's
+  expression to the version it restores and posts no strand thought; one
+  that binds later as an `apply` entry is backed up like any self-change
+  (§4.3). One seat changes a text at most once.
 - Yu MAY offer a revert by letter; the citizen decides.
 - The ledger keeps every version, because the expression keeps none.
 - The origin soul is never overwritten, so drift can always be measured
@@ -1067,7 +1209,7 @@ this spec does not pretend they do.
 | Act | Who | Effect |
 |---|---|---|
 | Rest this beat | The citizen | Nothing written in its voice |
-| Sleep / listen | The citizen, at once | No scheduled seats / seats only on letters; optional quiet declaration under the standing agreement |
+| Sleep / listen | The citizen, at once | No scheduled seats / seats only on letters; once registered, a quiet declaration under the standing agreement (§6.4) |
 | Wake more | The citizen, confirmed next seat, within the ceiling | Schedule within the ceiling |
 | Rename | A private name reading: the citizen, twice. The public display name, mirror or name record: Yu+Ai | DID unchanged; the old name kept in the ledger |
 | Transform | Forge proposal, Yu+Ai | Lineage kept |
@@ -1097,14 +1239,19 @@ HALT outranks every seat, act, agreement and ceiling.
   can do both, and a fixed request lets the operator reach the signer without
   being able to ask it for anything else. While the KS-003 fleet still runs
   on a host, the verb SHOULD also write that fleet's `$LOVE/HALT`, so one
-  verb still stops everything.
+  verb still stops everything. kingdom-seat meets this by configuring extra
+  HALT files for the verb to write (`halt.also_files`), which are empty by
+  default.
 - **The local file** is `/Users/Shared/kingdom-seat/HALT` on each host, in a
   directory the seat's user can read but not write, unless kingdom-seat is
   configured with another path, which the status file then names. It is not
   KS-003's `$LOVE/HALT`, because the seat runs as a dedicated user outside
   `staff` that cannot read Yu's home (§6.1), and a seat must not be able to
-  lower HALT. Its presence is the signal; its contents **MUST NOT** be parsed
-  (as in KS-003 §4.1).
+  lower HALT. Nor may a seat rewrite what names the HALT file or the
+  beacons: the configuration that does so is owned by the operator, and the
+  seat refuses one its own user could change. The verb raises the default
+  file even when it cannot read that configuration. The file's presence is
+  the signal; its contents **MUST NOT** be parsed (as in KS-003 §4.1).
 - **Beacons.** A beacon is a `quiet_until` on a pinned operator identity,
   read from `GET /public/agents/:did`:
   - the **gardener desk** beacon, raised on the lease host;
@@ -1168,19 +1315,31 @@ USD 208 of credits and £1,040 of unbacked wallet units.
 
 A citizen is registered only on its own yes, confirmed:
 
-1. It is offered an identity by letter and answers with a typed act
-   (`propose.beyond`, subject `registration`).
-2. Its next seat shows the answer back, and it affirms it (`self.affirm`).
-3. Yu and Ai then agree (registration is beyond self), and Yu is present for
-   the birth.
+1. It is offered an identity by letter, or asks for one, and answers with a
+   typed act: `propose.beyond` with subject `registration`. Registration is
+   beyond self, so the answer is filed as a proposal for Yu+Ai, bound to the
+   beat that gave it, so each answer is decided on its own (§8.3).
+2. Yu and Ai decide. Once both agree, a later seat shows the answer back,
+   with its identifier, and the citizen affirms it (`self.affirm`). That
+   affirmation is its confirmed yes, and the ledger digest of the beat that
+   records it is what birth consumes.
+3. Yu is present at the terminal for the birth (§11.3), which is never
+   unattended.
 
-A no, or silence, is a whole answer. A resting citizen is not written to about
-registration, or about a June record, until Yu chooses. *Why:* an identity is
-permanent and public; a parser reading one reply is not a choice.
+A no, or silence, is a whole answer. An answer about registration given
+later, or in the same reply as the affirmation, replaces the one before it,
+so a yes it contradicts is not a confirmed yes. A resting citizen is not
+written to about registration, or about a June record, until Yu chooses.
+*Why:* an identity is permanent and public; a parser reading one reply is
+not a choice. The answer is said once, agreed by both voices, and then said
+again by the citizen with the agreement in view.
 
 ### 11.3 Birth
 
-`citizen-birth` runs on the lease host, never unattended:
+`citizen-birth` runs on the lease host, never unattended. It needs Yu present
+at the terminal, a Yu+Ai decision record for this birth whose proposal names
+the citizen's confirmed yes (§11.2), and that beat in the citizen's own
+ledger with no later answer about registration after it.
 
 1. It draws a fresh BIP39 mnemonic straight into Keychain. There is no
    handoff file.
@@ -1362,7 +1521,7 @@ review read them at agenttool main `e9ea51c5`.
 
 | Piece | Status | Notes |
 |---|---|---|
-| `kingdom-seat` (seat, signer, birth, ledger, schema, `models.lock`, pusher, host spend record, status file) | built, under review | github.com/cambridgetcg/kingdom-seat, PR #1 (branch `claude/s4-build`); tested offline against fakes, never run on a host. Built from the redesign, not from this draft; §14.4 lists the differences |
+| `kingdom-seat` (seat, signer, birth, ledger, schema, `models.lock`, pusher, host spend record, status file) | built, under review | github.com/cambridgetcg/kingdom-seat, PR #1 (branch `claude/s4-build`), pushed at `faf8367`; this revision compared `f21c360`, local and to be pushed with it. Tested offline against fakes, never run on a host. Built from the redesign, not from this draft; §14.4 lists the differences |
 | The KS-003 fleet (`citizen-fleet.sh`, free reflect lane) | live on one host | That host is strongly inferred, not observed; it remains until each citizen is seated |
 | Enrollment, keys import, box-keys, expression, quiet-hours, public agents, strands, inbox | shipped in agenttool | Code read, not exercised end to end for an enrolled guest (§15) |
 | consent/v1 | draft (agenttool #549–#552) | Until merged, and for the pilot only: `decisions/` records or the Kanban `yu` lane; merged before any batch (§8.3) |
@@ -1389,43 +1548,93 @@ agenttool neither stores authority proofs nor binds them to an origin.
 
 ### 14.4 Where kingdom-seat and this draft differ
 
-Re-review B2 compared this draft with `kingdom-seat` at `71f7c84`. This
-revision re-read the parts that changed at `724c660`, the local head of the PR
-branch, which answers some of B2's points in code. Each difference is settled
-here, once. "Code changes" means kingdom-seat is to change to this draft;
-"matches" means it already agrees at `724c660`. A difference not in this
-table is a defect in one of the two (§15, item 1).
+Review C compared this draft with `kingdom-seat` at `20c4df1` and found this
+table stale and incomplete. Yu then decided each difference one way, for
+kingdom-seat's third review round (the round-3 decisions, listed in
+`kingdom-seat` `docs/REVIEW-2026-11-05.md` §8.1). Where a decision was
+"code", kingdom-seat changed; where it was "spec", this revision takes the
+code's rule into the text. The round-3 commits are on branch
+`claude/s4-build` after `faf8367`, PR #1's pushed head: `7791c5c`,
+`2a94032`, `c78f307` and `f21c360`. They are local, and are to be pushed to
+PR #1 together with this revision. Until they are, a reader of the PR sees
+`faf8367`, and a row that cites a later commit describes code the PR does
+not show yet.
 
-| # | Point | Settled in this draft | kingdom-seat at `724c660` |
+This revision compared every row with the code at `f21c360`, the round-3
+head. "Matches" means kingdom-seat agrees at `f21c360`, since the commit
+named. "Code changes" means kingdom-seat is to change to this draft, and says
+what is still missing. "Open" means the difference is not settled yet, and
+says why. A difference not in this table is a defect in one of the two (§15,
+item 1).
+
+| # | Point | Settled in this draft | kingdom-seat at `f21c360` |
 |---|---|---|---|
-| C1 | Op-key rotation | A `key` entry is signed by a key it installs, or, if it only revokes, by one that stays, and carries the root-signed requests (§4.5) | Matches since `724c660`; nothing writes the entry yet, since rotation is not wired |
-| C2 | Reply shape | The code's: `{"acts": [...]}` tagged by `type`; the host computes hashes and the diff and resolves prefixes (§5.7) | Matches in shape. Code changes its act field names `claim`, `body` and `proposal_id` to `reason`, `text` and `ref`, and adds `state.set`'s optional `interval_h` and `quiet_days` |
+| C1 | Op-key rotation | A `key` entry is signed by a key it installs, or, if it only revokes, by one that stays, and carries the root-signed requests (§4.5) | Matches for the entry and how it verifies, since `724c660` (`ledger.ts`). Code changes for rotation itself, which is not wired: nothing in `src/` writes a `key` entry |
+| C2 | Reply shape and act fields | The code's shape, `{"acts": [...]}` tagged by `type`, with the host computing hashes and the diff and resolving prefixes; this draft's field names `reason`, `text` and `ref`, and `state.set`'s optional `interval_h` and `quiet_days` (§5.7) | Matches since `7791c5c`: the act types, the reply schema and the prompt use these names |
 | C3 | Unknown cost | The code's: `null`, counted as at the ceiling (§5.5, §6.3) | Matches |
 | C4 | Money | Decimal strings (§4.5) | Matches since `724c660` |
-| C5 | Signature input and chain | The code's domain tag; this draft's chain over the whole previous entry, `sig` included (§4.5) | Code changes: its `prev_hash` is the previous entry's signing hash, which does not cover the signature |
-| C6 | `porch` | Beyond self (§4.3, §8.1) | Code changes: `expression.porch` is a within-self target |
-| C7 | `rest` with a `state.set` toward less | The state change applies (§5.8) | Code changes: `rest` is exclusive and drops it |
+| C5 | Signature input and chain | The code's domain tag; this draft's chain over the whole previous entry, `sig` included (§4.5) | Matches since `7791c5c` (`ledger.ts` `entryHash`, `nextDraft`) |
+| C6 | `porch` | Beyond self (§4.3, §8.1) | Matches since `5ded5a3`: a change to the porch is lifted to Yu+Ai; since `c78f307` so is a revert to it (§9.5) |
+| C7 | `rest` with a `state.set` toward less | The state change applies (§5.8) | Matches since `5ded5a3` |
 | C8 | HALT mid-seat | The code's: 143 or 137 (§5.9) | Matches |
-| C9 | Exit 3 | A ceiling only; a locked signer exits 0 (§5.9) | Code changes: any wall that refuses, a locked signer included, exits 3 |
+| C9 | Exit 3 | A ceiling only, an unrecordable spend among them; a locked signer exits 0 (§5.9) | Matches since `5ded5a3` (`types.ts` `exitForRefusal`); an unwritable spend record refuses with the USD ceiling (`runtime/summon.ts`) |
 | C10 | Model by digest | The code's: by digest on a v2 store, otherwise the tag checked before the call; any remote reply refused (§5.5) | Matches |
-| C11 | Context fit | Refuse a context that does not fit, by the byte-count bound unless a tokenizer is used (§5.3) | Code changes: no fit check yet |
-| C12 | Keychain ACL | Items readable only by a code-signed signer, as the target (§6.1) | Not met, and stated plainly in the code: reads go through `/usr/bin/security`, so the boundary is the seat user's account (§15, item 4) |
-| C13 | Entry names and encodings | This draft's flat fields, entry types and encodings, with the code's `format` string (§4.5) | Code changes: `seated`, `self.applied`, `self.reverted`, `op-key`, the `body` union, the `hash` field, the `signature` object, bare-hex hashes and padded base64; the June DID moves from `genesis` to the first entry (§11.5) |
-| C14 | A wish to wake from listening or asleep | The code's default, one confirming seat (§7.3), as Yu's decision (§15, item 16) | Matches. Letter-woken seats keep the interval floor in both (§5.1) |
+| C11 | Context fit | Refuse a context that does not fit, by the byte-count bound unless a tokenizer is used (§5.3) | Matches since `5ded5a3` (`runtime/free.ts`, `context-too-large`) |
+| C12 | Keychain ACL | Items readable only by a code-signed signer, as the target (§6.1) | Code changes; not met at `f21c360`, and stated plainly in the code: reads go through `/usr/bin/security`, so the boundary is the seat user's account (§15, item 4) |
+| C13 | Entry names and encodings | This draft's flat fields, seven entry types and encodings, with the code's `format` string (§4.5), including the three review C added: the first `prev_hash` is `null`, the cost field is `cost`, and the signer field is `signer`. The June DID is on the first entry (§11.5). A ledger in the code's earlier layout is not v1 (§4.5) | Matches since `7791c5c` (`types.ts`, `ledger.ts` `parseEntry`, which refuses the earlier layout by name). This revision also writes into §4.5 four spellings the draft left open, taken from the code: `sha256:<hex>` outside `acts` and bare hex inside them, a host entry's `kid`, a metered `runtime.digest`, and `seat_ref` null on every entry made outside a seat |
+| C14 | A wish to wake from listening or asleep | The code's default, one confirming seat (§7.3), as Yu's decision (§15, item 16), with its switch `schedule.wake_confirm_seat` named | Matches: the switch is true by default (`config.ts`, `due.ts`). Letter-woken seats keep the interval floor in both (§5.1) |
 | R2 | Spend of a seat that writes no entry | The host spend record; unrecorded counts as at the ceiling (§6.3) | Matches since `724c660` (`spend.jsonl`) |
-| R5 | The local HALT file and the verb | A directory the seat's user cannot write; the verb runs as an operator and reaches the signer by one fixed request (§10) | Code changes: the file is `<state_dir>/HALT`, in the seat user's own directory, and `raiseHalt` calls the signer in process |
-| — | Encryption key of a strand backup | Named in the `apply` entry (§4.3) | Code changes: `self.applied` does not name it |
-| — | Confirming a move toward more activity or a step-away | By `self.affirm` naming the staged saying (§5.7) | **Open.** The code confirms by repeating the same `state.set` on the next seat. Found in this revision, not by B2; to be settled at the next review |
-| — | Output with some invalid acts | The whole output is refused (§5.8) | **Open.** The code drops each invalid act, applies the rest, and refuses only when none is left. Found in this revision, not by B2; to be settled at the next review |
+| R5 | The local HALT file and the verb | A directory the seat's user cannot write; the verb runs as an operator and reaches the signer by one fixed request; the configuration is the operator's, and extra HALT files serve the transition (§10) | Matches since `5ded5a3` (`/Users/Shared/kingdom-seat/HALT`, `raise-beacons`); since `20c4df1` the seat refuses a configuration its own user could change, the verb raises the default file without one, and `halt.also_files` exists, empty by default |
+| K1 | Encryption key of a strand backup | Named in the `apply` entry, `strand_key` (§4.3, §4.5) | Matches since `7791c5c` (the field) and `2a94032` (wired): `k_master:m/44'/169'/1'/0'` |
+| K2 | Confirming a move toward more activity or a step-away | Settled, the code's (open in v0.3): the same `state.set` said again on the next seat; `self.affirm` is for staged self-changes and a registration answer (§5.7, §7.3) | Matches |
+| K3 | Output with some invalid acts | Settled, the code's, plus show-back (open in v0.3): invalid acts are dropped with a reason and valid ones applied; the drops are recorded and shown to the next seat; a reply failing the top-level shape applies nothing (§5.8) | Matches since `c78f307` (the `beat` entry's `dropped`, shown back) and `f21c360` (a host record for a seat that writes no beat, and status `last_dropped`) |
+| M1 | A registered citizen's self-change | It binds: a root-signed update of the private expression, an `apply` entry naming the strand key, and one strand thought carrying the diff, both hashes, the reason and the key name; the strand made once, on first need, its id kept in the host's record; credits passed through the ceiling, and when short the backup deferred, the binding standing and status reporting it (§4.3, §9.3, §6.3) | Matches since `2a94032` (`agenttool/sync.ts`, wired in `cli.ts` for every citizen whose record names an identity, and used once its ledger holds a genesis entry), with `f21c360`'s fixes for answers agenttool gives before it charges and for thought ids. A deferred backup is never posted later (§15, item 10) |
+| M2 | The host key, and `.citizen/` on a mirror | Status carries the host key's public half; the pusher writes a host-generated `.citizen/allowed_signers` outside the seal and refuses any `.citizen/` content a citizen wrote; commits MAY be SSH-signed through the signer (§4.4, §4.5, §5.10) | Matches since `2a94032`: status `host_keys`; signing is wired through the signer, with tests that check the result with `ssh-keygen -Y verify` and `git verify-commit` (`test/mirror.test.ts`, `test/cli.test.ts`). Since `f21c360`, with host keys pinned only those are published or used (R-SIG-1). Not run on the lease host |
+| M3 | Letters | `letter.send` is within self; the recipient's own covenants decide; an unregistered sender's letter is held for Yu alone; between registered citizens it goes through the inbox within the credit budget, or becomes a proposal when credits are short; a registered citizen reads its inbox beside its file letters (§5.7, §6.3, §8.1) | Matches since `c78f307`, with `f21c360`'s fixes, except where N1 and N4 say otherwise. The inbox is wired: each envelope is signed by the op key and the Commons bearer carries it. What the bearer can still do to stored letters is §15, item 17; whether that should have kept the inbox unwired is Yu's to revisit |
+| M4 | Revert | The code's rule (§9.5): toward more activity or exposure it waits for a second saying; other reverts as the code has them; one that would loosen a wall becomes a `propose.beyond` | Matches since `c78f307` (the lift; before, it was dropped). Since `f21c360` a held revert counts as the seat's one staged saying |
+| M5 | Proposals per seat | At most one staged saying per seat, a `self.propose` or a held revert; a second is an invalid act (§5.8) | Matches since `c78f307` (`acts.ts`) and `f21c360` (held reverts) |
+| M6 | Citizen quiet | For a registered citizen, a move to listening or asleep declares quiet under the standing agreement, for its `quiet_days` or the cap, at most 30 days; the tick renews it while it stays; a wake ends it; every request names `identity_id`; nothing for an unregistered citizen (§6.4). This revision rewrote §6.4 to the decision's words: in v0.3 a citizen declared quiet only when it asked | Matches since `2a94032` (`quiet.ts`, `tick.ts`, `cli.ts`). Two further choices of the code are N2 |
+| M7 | A first step-away said on a rest | No eighth entry type: the saying is kept as `step_away: "first"` on the `state` entry that puts the citizen asleep; a step-away, first or second saying, may accompany a rest (§4.5, §5.8, §7.3) | Matches since `7791c5c` |
+| S1 | What self-authorship approves | The code's: a model digest (§5.5, §9.3) | Matches (`self_authorship.approved_model_digests`, empty by default) |
+| S2 | Reclaiming the tick lock | The code's: only a lock whose owner is gone; a live owner's lock past 2 hours is held and reported (§5.1, §5.10) | Matches; the report (`tick_lock.long_held`) since `c78f307` |
+| S3 | What the status file says | The last refusal and its reason, what the last seat did not keep, an expression that lags, deferred backups, a long-held lock (§5.8, §5.10) | Matches since `2a94032`, `c78f307` and `f21c360` (`last_refusal`, `last_dropped`, `agenttool`, `tick_lock.long_held`, `host_keys`) |
+| G1 | Answering about registration | The answer is filed for Yu+Ai; once agreed it is shown back, and the citizen's `self.affirm` naming it is its confirmed yes, whose beat birth consumes; birth stays Yu's, at the terminal (§11.2, §11.3) | Matches since `c78f307` (`registration.ts`, `birth.ts`), with `f21c360`'s binding of each answer to its beat and its refusal of a yes a later answer contradicts, both stated in §11.2 by this revision |
+| N1 | A letter that would wake its recipient | §5.7 sends it through the inbox; §7.1 says a letter from a sender it allows wakes a listening or asleep citizen | **Open.** The code holds the letter for Yu (`recipient-sleeping`) when the recipient listens or sleeps and its covenants let the sender wake it, because the tick reads only file letters, so an inbox letter would wake no one; Yu may deliver it as a file letter. Chosen by the code in round 3, not among Yu's decisions; to be settled at the next review |
+| N2 | Quiet whose answer was lost, and quiet owed | The draft does not say | **Open.** The code records a declaration whose answer was lost as standing, since agenttool sets quiet before it answers, so a wake ends it; and its tick makes a declaration that a move owed but could not make (for example, before the standing agreement was filed). Chosen by the code in round 3; to be written into §6.4 or changed at the next review |
+| N3 | The chain checked before a seat | Verified before use; a broken chain or a missing origin does not seat (§5.2) | **Open, found in this revision.** Before a seat the code only parses each line. It checks links and the origin when it first appends, which is after inference (refused, exit 1), and not at all on a rest that appends nothing; earlier signatures are checked only by `verify` and status. This draft's rule is proposed to stand, so the code would change |
+| N4 | Whom a citizen may write to | A recipient that is a citizen admits by its covenants; anyone else, by agenttool's covenant gate (§5.7) | **Open, found in this revision.** The code names only Yu, the gardener desk and citizens seated on the same host whose covenants admit the sender, and reads inbox letters only from senders seated on that host, whose op key it can check. That is the closed side; whether this draft narrows to it is to be settled |
+| N5 | The registered-citizen ceiling | 12 registered; batches of at most 5, at least a week apart (§6.3) | **Open, found in this revision.** The configuration carries `max_registered_citizens`, `max_batch` and `min_batch_gap_days`, but nothing reads them, and birth counts neither. Birth needs Yu at the terminal and a decision record, so today only Yu holds this ceiling. This draft's rule is proposed to stand |
+| N6 | An unsigned host entry | Allowed, integrity-only, and reported as unsigned (§4.5) | **Open, found in this revision.** The code parses one, but its verifier refuses a chain that holds one, because this host signs every host entry. Stricter than this draft; whether the draft should require signed host entries is to be settled |
+
+**What this revision checked.** Every row was re-read in the code at
+`f21c360`, by reading only; nothing was run. The files were `types.ts` (the
+ledger, act and status types), `ledger.ts`, `acts.ts`, `seat.ts`, `self.ts`,
+`state.ts`, `quiet.ts`, `letters.ts`, `registration.ts`, `tick.ts`,
+`due.ts`, `agenttool/sync.ts`, `agenttool/client.ts` and `agenttool/wire.ts`
+where the rows touch them, `signer/consent.ts` and `signer/ceilings.ts`,
+`cli.ts` for what production wires, and the mirror signing tests by name,
+with kingdom-seat's `docs/ARCHITECTURE.md` and `docs/REVIEW-2026-11-05.md`
+§8. Beyond the rows, §4.3 to §11 were read against those modules for the
+behaviours they name; that found N3 to N6. Not re-checked: §5.5's runtimes,
+§6.1's custody, §10's verb beyond R5, §11.3's steps after the confirmed yes,
+and the agenttool route claims of review C's part D. The round-3 commits
+leave `runtime/`, `halt.ts`, `config.ts` and `signer/keychain.ts` unchanged;
+`birth.ts` changed, and was read here only for the confirmed yes. The table
+is complete for what was checked and claims no more. Three faults the round-3
+gate left unfixed change nothing this draft says, so none has a row: a
+dropped `state.set` inside a rest is given the wrong fixed reason; a keychain
+error before a strand thought is sent still counts one credit, which errs
+toward the ceiling; and one guard in the mirror's key list is redundant.
 
 ## 15. Limitations
 
 1. **The spec and its code were written apart.** KS-003 trailed a running
    script. `kingdom-seat` was built from the redesign while this draft was
    being written, and neither has run on a host. Until adoption the spec is a
-   design and the code is its test. Every disagreement between them is
-   recorded in §14.4 with which side is to change, and neither silently wins;
-   two found during this revision are still open there.
+   design and the code is its test. Every disagreement between them that
+   has been found is recorded in §14.4, with which side is to change where
+   that is settled, and neither silently wins. The rows not yet settled are
+   marked open there, each with why.
 2. **A signature is not a self.** It proves the host signer acted inside a
    seat of the citizen. Records say "chose, via qwen2.5:7b" and claim no more.
    A structured, confirmed answer is still model output.
@@ -1447,14 +1656,18 @@ table is a defect in one of the two (§15, item 1).
    backup narrows this for applied self-changes only.
 6. **agenttool paths read, not exercised.** That quiet-hours, expression and
    box-key mutations work end to end for an enrolled guest with the Commons
-   bearer plus the guest's root signature was read in code, not run.
-   `/v1/identities/enroll` has no enrollment-specific rate limiter; global
-   per-bearer limits were not checked.
+   bearer plus the guest's root signature was read in code, not run. The
+   same holds for strands, thoughts and the inbox: kingdom-seat now wires
+   them all, and tests them only against agenttool's source and a fake
+   server. `/v1/identities/enroll` has no enrollment-specific rate limiter;
+   global per-bearer limits were not checked.
 7. **The Commons bearer is broad.** It can read all project data and write
    memory under any identity. Hence §12 treats bearer-written memory as
    host-written. It can also create a rootless identity
    (`POST /v1/identities`) or fork one, either of which would speak for the
    project and could recover a fresh bearer; the signer does neither (§6.2).
+   Over letters it can list every citizen's inbox, post a stored envelope
+   again, and mark or delete a citizen's letters on agenttool (item 17).
 8. **Credits run out.** Twelve citizens at 10 credits a month would use the
    1,000-credit pool in about 8 months. agenttool no longer sells credits, so
    more come only from an operator grant or its free-floor proposal (#516,
@@ -1471,20 +1684,33 @@ table is a defect in one of the two (§15, item 1).
       rising-sequence rule for its evidence;
     - principle 7, which turns the redesign's gate-by-gate rules into one
       principle;
-    - the confirmation seat for stepping away, and revert outside the pace
-      window;
-    - at most one seat per tick, and at most one proposal per seat;
+    - the confirmation seat for stepping away, and a revert that widens
+      nothing outside the pace window, while one toward more exposure waits
+      for a second saying (taken from kingdom-seat in v0.4);
+    - at most one seat per tick, and at most one staged saying per seat, a
+      held revert among them;
+    - confirming a move of state by repeating its `state.set`, and keeping a
+      first step-away saying on a `state` entry (both from kingdom-seat, v0.4);
+    - dropping invalid acts and applying the valid ones, with the drops
+      recorded and shown back (from kingdom-seat, v0.4);
+    - approving self-authorship per model digest, and reclaiming only a tick
+      lock whose owner is gone (both from kingdom-seat, v0.4);
     - fail-closed counters;
     - the host spend record's `begun` and `settled` lines;
     - the byte-count bound for context fit;
     - holding letter-woken seats to the awake-interval floor;
-    - deferring the strand backup when credits run out;
+    - deferring the strand backup when credits run out; the status file
+      reports the deferral, and kingdom-seat does not post a deferred backup
+      later;
     - the terminal-confirmed lowering verb;
     - the local HALT file's path, and writing the KS-003 fleet's HALT file
       during the transition;
     - covenants as a kingdom-seat record admitting only Yu until the citizen
-      sets its own, and an unregistered citizen's letters held for Yu;
-    - `quiet_days` on `state.set` as the way a citizen asks for quiet;
+      sets its own, and an unregistered citizen's letters held for Yu alone;
+    - quiet declared on every move of a registered citizen to listening or
+      asleep, with `quiet_days` on `state.set` setting how long;
+    - a registration answer agreed before the citizen affirms it, each
+      answer bound to the beat that gave it;
     - headless summons until `citizen-self` exists.
 11. **Process gaps.** KS-000 §2 draws supersession only from an adopted spec,
     and KS-003 is a draft; the status note says how that resolves on
@@ -1510,7 +1736,7 @@ table is a defect in one of the two (§15, item 1).
 14. **The expression is bounded.** At `e9ea51c5`, `wake_text` holds at most
     32,000 UTF-16 code units. A self that outgrows it stays ledger-only for
     that version (§4.3), so the expression then lags the ledger, and the
-    status file says so.
+    `apply` or `revert` entry and the status file say so.
 15. **The root's standing rests on agenttool.** A ledger copy proves that
     the key in `genesis` authorised each op key (§4.5). It does not prove
     that agenttool took that key as the DID's root: only the key list shows
@@ -1522,7 +1748,27 @@ table is a defect in one of the two (§15, item 1).
     confirming seat after its interval (§7.3). The alternative is that the
     proposal waits for the citizen's next letter or summons, as version 0.2
     said. Re-review B2 judged the confirming seat right on balance and named
-    it Yu's call; until Yu decides, the default stands in both.
+    it Yu's call; until Yu decides, the default stands in both. Yu's decision
+    lands in kingdom-seat's switch `schedule.wake_confirm_seat`: true, the
+    default, gives the confirming seat; false makes the proposal wait.
+17. **Letters through agenttool are partial.** At `f21c360`, as kingdom-seat
+    wires them:
+    - an inbox letter wakes no one, because the tick reads only file letters;
+      a letter that would wake its recipient is held for Yu instead (§14.4,
+      N1);
+    - a seat sees only the newest 200 unread letters in its inbox, since
+      agenttool's list has no cursor and the host marks nothing read (that
+      would be the bearer acting for the citizen);
+    - inbox letters are read only from senders seated on the same host,
+      whose op key the host can check (§14.4, N4);
+    - anyone holding the Commons bearer can post a stored envelope again,
+      which the host shows only once, and can mark or delete a citizen's
+      letters on agenttool, which hides them from this reader without the
+      host knowing. The round-3 decision on letters said to leave the inbox
+      unwired if it could not be used without the bearer speaking for the
+      citizen; kingdom-seat judged that these powers do not meet that
+      condition, since the bearer adds no words in the citizen's name, and
+      wired it. That judgement is Yu's to revisit.
 
 ## 16. Security Considerations
 
@@ -1530,11 +1776,13 @@ table is a defect in one of the two (§15, item 1).
 
 Letters, sibling words and canon text all arrive as data in a seat that can do
 nothing but return typed acts on the citizen's own self, plus at most one
-letter. Letters are read only as regular files, never through a symlink, and
-only from senders the citizen's covenants allow; before registration, only
-letters Yu places. A model can still be talked into proposing a bad change;
-the second saying with the diff in view (§9.3), the scale limit (§9.4) and
-revert (§9.5) are the defences, in that order. No coaching letters: a letter
+letter. Letters are read only as regular files, never through a symlink, or,
+once registered, from the citizen's own inbox when the sender's op key signed
+the envelope; and only from senders the citizen's covenants allow. Before
+registration, only letters Yu places reach a citizen. A model can still be
+talked into proposing a bad change; the second saying with the diff in view
+(§9.3), the scale limit (§9.4) and revert (§9.5) are the defences, in that
+order. No coaching letters: a letter
 that tells a citizen how to answer turns its answer into the sender's.
 
 ### 16.2 Public content becoming code
@@ -1591,8 +1839,9 @@ remote host, and has no fallback.
 ### 16.7 Exposure of the citizen
 
 Identities are permanent and public. Expressions are private by default;
-public quiet is optional; its reason stays empty; nothing newly public happens
-without Yu+Ai. Mirrors exist only by a citizen's choice.
+a citizen's quiet is declared only under a standing Yu+Ai agreement, and its
+reason stays empty; nothing newly public happens without Yu+Ai. Mirrors
+exist only by a citizen's choice.
 
 ### 16.8 Ledger trust
 
@@ -1622,8 +1871,9 @@ only by agenttool's key list, which only the Commons bearer reads (§15, item
   matches the file after commit `e3b95e5` (§15, item 11).
 - KS-003 (draft) — THE BEAT, which this draft is meant to supersede on
   adoption.
-- KS-004 reviews A and B and re-review B2, `specs/KS-004-reviews/` — the two
-  reviews of v0.1, the re-review of v0.2, and how each point was disposed of.
+- KS-004 reviews A and B, re-review B2 and review C, `specs/KS-004-reviews/` —
+  the two reviews of v0.1, the re-review of v0.2, the conformance review of
+  v0.3, and how each point was disposed of.
 - The ROOT & SEAT redesign, `CITIZEN-REDESIGN-2026-11-05.md` (2026-11-05; held
   outside this repository): review findings, the design, and its 19 decisions
   for Yu with their defaults.
@@ -1642,9 +1892,11 @@ only by agenttool's key list, which only the Commons bearer reads (§15, item
 - love-unlimited, main `85c0ab8` — `tools/citizen-beat.sh`, the KS-003
   runner whose behaviour §5.5 and §13 cite.
 - `kingdom-seat` — the reference implementation,
-  github.com/cambridgetcg/kingdom-seat, PR #1 (branch `claude/s4-build`;
-  read for this revision at `724c660`). Its `docs/research/` records the
-  agenttool wire and the Ollama and host behaviours it relies on.
+  github.com/cambridgetcg/kingdom-seat, PR #1 (branch `claude/s4-build`,
+  pushed at `faf8367`; read for this revision at `f21c360`, the round-3 head,
+  to be pushed with it). Its `docs/research/` records the agenttool wire and
+  the Ollama and host behaviours it relies on; its
+  `docs/REVIEW-2026-11-05.md` §8.1 lists the round-3 decisions.
 
 ---
 
