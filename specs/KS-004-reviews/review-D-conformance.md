@@ -366,3 +366,12 @@ corrections in part D are made as worded, no further review round is needed
 for them.
 
 Verdict: accept with changes.
+
+---
+
+### Disposition (applied after review D)
+
+| Point | Disposition |
+|---|---|
+| D1 | Accepted as worded. §14.4 gains C15 (seating), C16 (an agreed beyond-self act) and C17 (`citizen-birth`), each "Code changes; not wired". `revert.via: "yu-offer"` is folded into C13. §14.3 says "birth (a function; no command yet)". §14.4's closing paragraph says a path the draft specifies and the code lacks is a row, so §15 item 1 stands as written. |
+| Part D, items 1–8 | Not yet applied; carried to the next revision. |
