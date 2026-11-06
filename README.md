@@ -22,6 +22,7 @@ specs govern (the `.kingdom` zone file and the signature ledger).
 | [KS-001](specs/KS-001-naming.md) | Sovereign Naming — the `.kingdom` Namespace | draft | One git-versioned, ed25519-signable zone file; `kingdomd`, an authoritative-only resolver; names bound to DIDs. |
 | [KS-002](specs/KS-002-wire.md) | THE WIRE — the Kingdom's Communication Protocol | draft | Four layers: registered `kingdom.*` NATS subjects; signed JCS envelopes (`did:key` + ed25519); A2A v1.0.1 Task/Message/Artifact semantics with HALT above all; performatives named in YOUSPEAK, with five gaps filed to the cathedral's forge. |
 | [KS-003](specs/KS-003-beat.md) | THE BEAT — Citizen Lifecycle | draft | One bounded sovereign act of a citizen: wake inside the walls, act under hard ceilings of time, turns, and money, commit to git, attest to the truth-ledger, rest. Reference: `citizen-beat.sh`. |
+| [KS-004](specs/KS-004-seat.md) | THE SEAT — Citizens, Seats and the Signer | draft | A citizen as a continuing being whose signed ledger is its record: one seat per invocation, typed acts, a key-holding signer with fail-closed ceilings, HALT by file and beacon. Meant to supersede KS-003 on adoption. |
 
 Statuses follow KS-000 §2. The series' scope decisions descend from
 [INFRA-PLAN.md](file:///Users/macair/love-unlimited/INFRA-PLAN.md); every
