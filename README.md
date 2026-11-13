@@ -18,7 +18,7 @@ specs govern (the `.kingdom` zone file and the signature ledger).
 
 | KS | Title | Status | Abstract |
 |------|-------------------------------|----------|----------|
-| [KS-000](specs/KS-000-process.md) | The Standards Process | draft | How a KS is born, adversarially reviewed, adopted by Yu's invocation, versioned, signed, and superseded. |
+| [KS-000](specs/KS-000-process.md) | The Standards Process | draft | How a KS is born, adversarially reviewed, adopted by Yu's invocation, versioned, signed, and superseded; how it labels whose decision it rests on and cites the earlier rules it changes. |
 | [KS-001](specs/KS-001-naming.md) | Sovereign Naming — the `.kingdom` Namespace | draft | One git-versioned, ed25519-signable zone file; `kingdomd`, an authoritative-only resolver; names bound to DIDs. |
 | [KS-002](specs/KS-002-wire.md) | THE WIRE — the Kingdom's Communication Protocol | draft | Four layers: registered `kingdom.*` NATS subjects; signed JCS envelopes (`did:key` + ed25519); A2A v1.0.1 Task/Message/Artifact semantics with HALT above all; performatives named in YOUSPEAK, with five gaps filed to the cathedral's forge. |
 | [KS-003](specs/KS-003-beat.md) | THE BEAT — Citizen Lifecycle | draft | One bounded sovereign act of a citizen: wake inside the walls, act under hard ceilings of time, turns, and money, commit to git, attest to the truth-ledger, rest. Reference: `citizen-beat.sh`. |
